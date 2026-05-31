@@ -10,7 +10,7 @@ namespace ForVlad.Data
 {
     /// <summary>
     /// Сервис данных с прямым подключением к SQL Server через ADO.NET
-    /// Используется как альтернатива Entity Framework
+    /// Используется как основная реализация ISimpleDataService
     /// </summary>
     public class SqlDataService : ISimpleDataService
     {
@@ -415,7 +415,7 @@ namespace ForVlad.Data
                 InventoryNumber = reader.IsDBNull(1) ? null : reader.GetString(1),
                 Name = reader.IsDBNull(2) ? "" : reader.GetString(2),
                 AssetGroup = reader.IsDBNull(3) ? AssetGroup.Vehicle : (AssetGroup)reader.GetByte(3),
-                // Маппим VehicleBrand -> Manufacturer
+                // REFACTOR: Маппим VehicleBrand->Manufacturer, VehicleModel->Model, VinNumber->SerialNumber, ManufactureYear->YearOfManufacture
                 Manufacturer = reader.IsDBNull(4) ? null : reader.GetString(4),
                 Model = reader.IsDBNull(5) ? null : reader.GetString(5),
                 SerialNumber = reader.IsDBNull(6) ? null : reader.GetString(6),
@@ -425,16 +425,10 @@ namespace ForVlad.Data
                 PurchasePrice = 0, // Нет в БД, устанавливаем 0
                 ResidualValue = 0, // Нет в БД, устанавливаем 0
                 IsAvailable = reader.IsDBNull(11) ? true : reader.GetBoolean(11),
-                Notes = reader.IsDBNull(12) ? null : reader.GetString(12),
-                // Дополнительные поля из БД
-                VehicleBrand = reader.IsDBNull(4) ? null : reader.GetString(4),
-                VehicleModel = reader.IsDBNull(5) ? null : reader.GetString(5),
-                VinNumber = reader.IsDBNull(6) ? null : reader.GetString(6),
-                ManufactureYear = reader.IsDBNull(7) ? (int?)null : reader.GetInt32(7),
+                Description = reader.IsDBNull(12) ? null : reader.GetString(12),
                 HourlyRate = hourlyRate,
                 DailyRate = dailyRate,
                 AssetCondition = reader.IsDBNull(10) ? AssetCondition.Good : (AssetCondition)reader.GetByte(10),
-                Description = reader.IsDBNull(12) ? null : reader.GetString(12),
                 VehicleSubcategory = reader.IsDBNull(13) ? null : (VehicleSubcategory?)reader.GetByte(13),
                 EquipmentSubcategory = reader.IsDBNull(14) ? null : (EquipmentSubcategory?)reader.GetByte(14),
                 EquipmentType = reader.IsDBNull(15) ? null : reader.GetString(15),
@@ -463,7 +457,8 @@ namespace ForVlad.Data
             command.Parameters.AddWithValue("@DailyRate", dailyRate);
             command.Parameters.AddWithValue("@AssetCondition", (int)asset.AssetCondition);
             command.Parameters.AddWithValue("@IsAvailable", asset.IsAvailable);
-            command.Parameters.AddWithValue("@Description", asset.Notes ?? asset.Description ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@Description", asset.Description ?? (object)DBNull.Value);
+            // REFACTOR: Удалено дублирующееся свойство Notes, используется Description
             command.Parameters.AddWithValue("@VehicleSubcategory", asset.VehicleSubcategory.HasValue ? (object)(int)asset.VehicleSubcategory.Value : DBNull.Value);
             command.Parameters.AddWithValue("@EquipmentSubcategory", asset.EquipmentSubcategory.HasValue ? (object)(int)asset.EquipmentSubcategory.Value : DBNull.Value);
             command.Parameters.AddWithValue("@EquipmentType", asset.EquipmentType ?? (object)DBNull.Value);
@@ -553,6 +548,14 @@ namespace ForVlad.Data
         {
             // В БД: ContractStatus (TINYINT), CreatedAt, UpdatedAt
             // Нет: DurationMonths, VATAmount, TotalWithVAT, AdvancePayment, MonthlyPayment, ActivationDate, CompletionDate, IsDeleted
+            
+            // REFACTOR: Проверка ограничения CHECK из БД - TotalAmount должен быть положительным
+            if (contract.TotalAmount <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Сумма договора должна быть больше 0. Укажите корректную общую сумму договора.");
+            }
+            
             string sql = @"
                 INSERT INTO Contracts 
                 (ContractNumber, [ContractType], ContractStatus, CounterpartyId, 
@@ -577,6 +580,13 @@ namespace ForVlad.Data
         
         private void UpdateContract(Contract contract)
         {
+            // REFACTOR: Проверка ограничения CHECK из БД - TotalAmount должен быть положительным
+            if (contract.TotalAmount <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Сумма договора должна быть больше 0. Укажите корректную общую сумму договора.");
+            }
+            
             string sql = @"
                 UPDATE Contracts SET
                     ContractNumber = @ContractNumber,

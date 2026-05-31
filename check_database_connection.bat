@@ -1,69 +1,72 @@
 @echo off
-echo ========================================
-echo ДИАГНОСТИКА ПОДКЛЮЧЕНИЯ К SQL SERVER
-echo ========================================
+:: Кодировка: Windows-1251 (Cyrillic)
+chcp 1251 > nul
+title Проверка подключения к LeasingSystem
+color 0A
+
+cls
+echo ========================================================
+echo     ПРОВЕРКА ПОДКЛЮЧЕНИЯ К БАЗЕ ДАННЫХ LEASINGSYSTEM
+echo ========================================================
 echo.
 
-echo 1. Проверка файла App.config:
+echo [1] Проверка файла App.config...
 if exist "App.config" (
-    echo    [OK] App.config найден
-    findstr /i "connectionStrings" App.config > nul
+    echo     OK - App.config найден
+    findstr /i "LeasingSystem" App.config > nul
     if %errorlevel% equ 0 (
-        echo    [OK] Секция connectionStrings найдена
+        echo     OK - Строка подключения найдена
     ) else (
-        echo    [ERROR] Секция connectionStrings НЕ найдена!
+        echo     ERROR - Строка подключения НЕ найдена
     )
 ) else (
-    echo    [ERROR] App.config НЕ найден!
+    echo     ERROR - App.config НЕ найден
 )
 echo.
 
-echo 2. Проверка скомпилированного файла конфигурации:
+echo [2] Проверка скомпилированного конфига...
 if exist "bin\Debug\ForVlad.exe.config" (
-    echo    [OK] ForVlad.exe.config найден
-    echo    Содержимое connectionStrings:
-    findstr /i /c:"connectionStrings" /c:"add name" "bin\Debug\ForVlad.exe.config"
+    echo     OK - ForVlad.exe.config найден
 ) else (
-    echo    [ERROR] ForVlad.exe.config НЕ найден!
-    echo    Нужно скомпилировать проект в Visual Studio
+    echo     ERROR - ForVlad.exe.config НЕ найден
+    echo     -> Скомпилируйте проект в Visual Studio
 )
 echo.
 
-echo 3. Проверка доступности SQL Server Express:
-echo    Пробуем подключиться через sqlcmd...
-sqlcmd -S "(local)\SQLEXPRESS" -E -Q "SELECT @@VERSION" -h -1
+echo [3] Проверка SQL Server Express...
+sqlcmd -S "(local)\SQLEXPRESS" -E -Q "SELECT @@VERSION" -h -1 > nul 2>&1
 if %errorlevel% equ 0 (
-    echo    [OK] SQL Server Express доступен
+    echo     OK - SQL Server доступен
+    sqlcmd -S "(local)\SQLEXPRESS" -E -Q "SELECT @@VERSION" -h -1 2> nul
 ) else (
-    echo    [ERROR] SQL Server Express НЕ доступен
-    echo    Возможные причины:
-    echo    - Служба SQL Server не запущена
-    echo    - Неверное имя сервера
-    echo    - SQL Server Express не установлен
+    echo     ERROR - SQL Server НЕ доступен
+    echo     -> Проверьте, запущена ли служба SQL Server
 )
 echo.
 
-echo 4. Список баз данных:
-sqlcmd -S "(local)\SQLEXPRESS" -E -Q "SELECT name FROM sys.databases" -h -1
-echo.
-
-echo 5. Проверка наличия базы LeasingSystem:
-sqlcmd -S "(local)\SQLEXPRESS" -E -Q "SELECT name FROM sys.databases WHERE name = 'LeasingSystem'" -h -1
+echo [4] Проверка базы LeasingSystem...
+sqlcmd -S "(local)\SQLEXPRESS" -E -Q "IF DB_ID('LeasingSystem') IS NOT NULL SELECT 1 ELSE SELECT 0" -h -1 > nul 2>&1
 if %errorlevel% equ 0 (
-    echo    [OK] База LeasingSystem существует
+    echo     OK - База LeasingSystem существует
 ) else (
-    echo    [WARNING] База LeasingSystem НЕ найдена
-    echo    Нужно создать базу данных
+    echo     ERROR - База LeasingSystem НЕ найдена
+    echo     -> Выполните SQL скрипты из папки Database
 )
 echo.
 
-echo ========================================
-echo РЕКОМЕНДАЦИИ:
+echo ========================================================
+echo                    ИТОГОВЫЙ ОТЧЕТ
+echo ========================================================
 echo.
-echo 1. Убедитесь, что файл bin\Debug\ForVlad.exe.config существует
-echo 2. Проверьте, что в нём есть секция connectionStrings
-echo 3. Убедитесь, что SQL Server Express запущен
-echo 4. Запустите приложение и вызовите ConnectionTester.TestAllConnectionMethods()
-echo ========================================
-
+echo  Если все проверки OK - подключение настроено правильно!
+echo  Если есть ERROR - выполните рекомендации выше.
+echo.
+echo  Советы:
+echo   1. Скомпилируйте проект (Build -> Build Solution)
+echo   2. Запустите службу SQL Server: Win+R -> services.msc
+   echo      Найдите SQL Server (SQLEXPRESS) и запустите
+   echo   3. Выполните скрипты из Database\: 01_ -> 02_ -> 03_ -> 04_ -> 05_
+echo.
+echo ========================================================
+echo.
 pause

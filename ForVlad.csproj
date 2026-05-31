@@ -152,6 +152,7 @@
     <Compile Include="ViewModels\RelayCommand.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Data\DatabaseConnection.cs" />
+    <Compile Include="Data\ISimpleDataService.cs" />
     <Compile Include="Data\SqlDataService.cs" />
     <Compile Include="Data\DataServiceProvider.cs" />
     <Compile Include="Data\SimpleDataService.cs" />

@@ -340,6 +340,14 @@ namespace ForVlad.ViewModels
                 return;
             }
             
+            // REFACTOR: Валидация суммы договора (должна быть > 0)
+            if (EditingContract.TotalAmount <= 0)
+            {
+                MessageBox.Show("Сумма договора должна быть больше 0. Укажите корректную общую сумму.", 
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
             // Валидация дат
             if (EditingContract.EndDate.HasValue)
             {
@@ -356,12 +364,20 @@ namespace ForVlad.ViewModels
             // Рассчитываем сумму с НДС
             EditingContract.TotalWithVAT = EditingContract.TotalAmount + EditingContract.VATAmount;
             
-            // Сохраняем
-            _dataService.SaveContract(EditingContract);
-            CloseDialog();
-            LoadContracts();
-            
-            MessageBox.Show("Договор успешно сохранен", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                // Сохраняем
+                _dataService.SaveContract(EditingContract);
+                CloseDialog();
+                LoadContracts();
+                
+                MessageBox.Show("Договор успешно сохранен", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // REFACTOR: Обработка валидационных ошибок из сервиса
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         
         private void DeleteContract()

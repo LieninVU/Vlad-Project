@@ -7,6 +7,12 @@ using ForVlad.Services;
 
 namespace ForVlad.Data
 {
+    // REFACTOR: 31.05.2026 - Класс SimpleDataService не используется в проекте.
+    // Все ViewModel используют SqlDataService через DataServiceProvider.
+    // Интерфейс ISimpleDataService перенесен в отдельный файл ISimpleDataService.cs
+    // если потребуется вернуть встроенное хранилище - раскомментировать этот код
+    
+    /*
     public interface ISimpleDataService
     {
         List<Counterparty> GetCounterparties();
@@ -580,4 +586,5 @@ namespace ForVlad.Data
                 rentedAsset.IsAvailable = false;
         }
     }
+    */
 }

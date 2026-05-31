@@ -301,7 +301,8 @@ namespace ForVlad.ViewModels
                 ResidualValue = source.ResidualValue,
                 MonthlyRentalRate = source.MonthlyRentalRate,
                 IsAvailable = source.IsAvailable,
-                Notes = source.Notes,
+                Description = source.Description,
+                // REFACTOR: Заменено Notes на Description
                 CreatedDate = source.CreatedDate,
                 ModifiedDate = source.ModifiedDate,
                 IsDeleted = source.IsDeleted,
@@ -335,12 +336,20 @@ namespace ForVlad.ViewModels
                 return;
             }
             
-            EditingAsset.ModifiedDate = DateTime.Now;
-            _dataService.SaveAsset(EditingAsset);
-            CloseDialog();
-            LoadAssets();
-            
-            MessageBox.Show("Техника успешно сохранена", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                EditingAsset.ModifiedDate = DateTime.Now;
+                _dataService.SaveAsset(EditingAsset);
+                CloseDialog();
+                LoadAssets();
+                
+                MessageBox.Show("Техника успешно сохранена", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // REFACTOR: Обработка валидационных ошибок из сервиса
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         
         private void DeleteAsset()
@@ -366,10 +375,19 @@ namespace ForVlad.ViewModels
             if (SelectedAsset == null)
                 return;
             
-            SelectedAsset.IsAvailable = !SelectedAsset.IsAvailable;
-            SelectedAsset.ModifiedDate = DateTime.Now;
-            _dataService.SaveAsset(SelectedAsset);
-            LoadAssets();
+            try
+            {
+                SelectedAsset.IsAvailable = !SelectedAsset.IsAvailable;
+                SelectedAsset.ModifiedDate = DateTime.Now;
+                _dataService.SaveAsset(SelectedAsset);
+                LoadAssets();
+            }
+            catch (InvalidOperationException ex)
+            {
+                // REFACTOR: Обработка валидационных ошибок из сервиса
+                SelectedAsset.IsAvailable = !SelectedAsset.IsAvailable; // Откатываем изменение
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         
         private void CloseDialog()
