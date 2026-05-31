@@ -318,9 +318,11 @@ namespace ForVlad.ViewModels
             if (EditingAsset == null)
                 return;
             
+            // REFACTOR: UI валидация для полей с ограничениями CHECK в БД
             if (string.IsNullOrWhiteSpace(EditingAsset.InventoryNumber))
             {
-                MessageBox.Show("Введите инвентарный номер", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Инвентарный номер должен быть указан. Укажите корректный инвентарный номер техники.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             
@@ -336,7 +338,6 @@ namespace ForVlad.ViewModels
                 return;
             }
             
-            // REFACTOR: UI валидация для полей с ограничениями CHECK в БД
             if (EditingAsset.HourlyRate <= 0 && EditingAsset.DailyRate <= 0 && EditingAsset.MonthlyRentalRate <= 0)
             {
                 MessageBox.Show("Хотя бы одно из значений (Почасовая ставка, Дневная ставка или Месячная аренда) должно быть больше 0.",

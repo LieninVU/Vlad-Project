@@ -257,15 +257,16 @@ namespace ForVlad.Data
         {
             // БД использует Inn, Kpp (с маленькой буквы)
             // В БД нет OGRN, пропускаем
-            command.Parameters.AddWithValue("@Name", counterparty.Name ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@Inn", counterparty.INN ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@Kpp", counterparty.KPP ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@LegalAddress", counterparty.LegalAddress ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@ActualAddress", counterparty.ActualAddress ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@ContactPerson", counterparty.ContactPerson ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@Phone", counterparty.Phone ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@Email", counterparty.Email ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@Notes", counterparty.Notes ?? (object)DBNull.Value);
+            // REFACTOR: Исправление для CHECK ограничения - пустые строки преобразуем в NULL
+            command.Parameters.AddWithValue("@Name", string.IsNullOrEmpty(counterparty.Name) ? (object)DBNull.Value : counterparty.Name);
+            command.Parameters.AddWithValue("@Inn", string.IsNullOrEmpty(counterparty.INN) ? (object)DBNull.Value : counterparty.INN);
+            command.Parameters.AddWithValue("@Kpp", string.IsNullOrEmpty(counterparty.KPP) ? (object)DBNull.Value : counterparty.KPP);
+            command.Parameters.AddWithValue("@LegalAddress", string.IsNullOrEmpty(counterparty.LegalAddress) ? (object)DBNull.Value : counterparty.LegalAddress);
+            command.Parameters.AddWithValue("@ActualAddress", string.IsNullOrEmpty(counterparty.ActualAddress) ? (object)DBNull.Value : counterparty.ActualAddress);
+            command.Parameters.AddWithValue("@ContactPerson", string.IsNullOrEmpty(counterparty.ContactPerson) ? (object)DBNull.Value : counterparty.ContactPerson);
+            command.Parameters.AddWithValue("@Phone", string.IsNullOrEmpty(counterparty.Phone) ? (object)DBNull.Value : counterparty.Phone);
+            command.Parameters.AddWithValue("@Email", string.IsNullOrEmpty(counterparty.Email) ? (object)DBNull.Value : counterparty.Email);
+            command.Parameters.AddWithValue("@Notes", string.IsNullOrEmpty(counterparty.Notes) ? (object)DBNull.Value : counterparty.Notes);
             command.Parameters.AddWithValue("@CounterpartyType", (int)counterparty.CounterpartyType);
             // IsActive = !IsDeleted
             command.Parameters.AddWithValue("@IsActive", !counterparty.IsDeleted);
@@ -608,27 +609,28 @@ namespace ForVlad.Data
         private void AddAssetParameters(SqlCommand command, Asset asset, decimal hourlyRate, decimal dailyRate)
         {
             // БД использует VehicleBrand, VehicleModel, VinNumber, ManufactureYear
-            command.Parameters.AddWithValue("@InventoryNumber", asset.InventoryNumber ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@Name", asset.Name ?? (object)DBNull.Value);
+            // REFACTOR: Исправление для CHECK ограничений - пустые строки преобразуем в NULL
+            command.Parameters.AddWithValue("@InventoryNumber", string.IsNullOrEmpty(asset.InventoryNumber) ? (object)DBNull.Value : asset.InventoryNumber);
+            command.Parameters.AddWithValue("@Name", string.IsNullOrEmpty(asset.Name) ? (object)DBNull.Value : asset.Name);
             command.Parameters.AddWithValue("@AssetGroup", (int)asset.AssetGroup);
-            command.Parameters.AddWithValue("@VehicleBrand", asset.Manufacturer ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@VehicleModel", asset.Model ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@VinNumber", asset.SerialNumber ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@VehicleBrand", string.IsNullOrEmpty(asset.Manufacturer) ? (object)DBNull.Value : asset.Manufacturer);
+            command.Parameters.AddWithValue("@VehicleModel", string.IsNullOrEmpty(asset.Model) ? (object)DBNull.Value : asset.Model);
+            command.Parameters.AddWithValue("@VinNumber", string.IsNullOrEmpty(asset.SerialNumber) ? (object)DBNull.Value : asset.SerialNumber);
             command.Parameters.AddWithValue("@ManufactureYear", asset.YearOfManufacture ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@HourlyRate", hourlyRate);
             command.Parameters.AddWithValue("@DailyRate", dailyRate);
             command.Parameters.AddWithValue("@AssetCondition", (int)asset.AssetCondition);
             command.Parameters.AddWithValue("@IsAvailable", asset.IsAvailable);
-            command.Parameters.AddWithValue("@Description", asset.Description ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@Description", string.IsNullOrEmpty(asset.Description) ? (object)DBNull.Value : asset.Description);
             // REFACTOR: Удалено дублирующееся свойство Notes, используется Description
             command.Parameters.AddWithValue("@VehicleSubcategory", asset.VehicleSubcategory.HasValue ? (object)(int)asset.VehicleSubcategory.Value : DBNull.Value);
             command.Parameters.AddWithValue("@EquipmentSubcategory", asset.EquipmentSubcategory.HasValue ? (object)(int)asset.EquipmentSubcategory.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@EquipmentType", asset.EquipmentType ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@EquipmentType", string.IsNullOrEmpty(asset.EquipmentType) ? (object)DBNull.Value : asset.EquipmentType);
             // Новые параметры
             command.Parameters.AddWithValue("@EnginePower", asset.EnginePower ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@RegistrationNumber", asset.RegistrationNumber ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@RegistrationNumber", string.IsNullOrEmpty(asset.RegistrationNumber) ? (object)DBNull.Value : asset.RegistrationNumber);
             command.Parameters.AddWithValue("@Weight", asset.Weight ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@PowerRequirements", asset.PowerRequirements ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@PowerRequirements", string.IsNullOrEmpty(asset.PowerRequirements) ? (object)DBNull.Value : asset.PowerRequirements);
             command.Parameters.AddWithValue("@CreatedAt", asset.CreatedDate);
         }
         
@@ -896,7 +898,8 @@ namespace ForVlad.Data
         private void AddContractParameters(SqlCommand command, Contract contract)
         {
             // БД использует ContractStatus, CreatedAt, UpdatedAt
-            command.Parameters.AddWithValue("@ContractNumber", contract.ContractNumber ?? (object)DBNull.Value);
+            // REFACTOR: Исправление для CHECK ограничений - пустые строки преобразуем в NULL
+            command.Parameters.AddWithValue("@ContractNumber", string.IsNullOrEmpty(contract.ContractNumber) ? (object)DBNull.Value : contract.ContractNumber);
             command.Parameters.AddWithValue("@ContractType", (int)contract.ContractType);
             command.Parameters.AddWithValue("@ContractStatus", (int)contract.Status);
             command.Parameters.AddWithValue("@CounterpartyId", contract.CounterpartyId);
@@ -904,8 +907,8 @@ namespace ForVlad.Data
             command.Parameters.AddWithValue("@StartDate", contract.StartDate);
             command.Parameters.AddWithValue("@EndDate", contract.EndDate ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@TotalAmount", contract.TotalAmount);
-            command.Parameters.AddWithValue("@PaymentTerms", contract.PaymentTerms ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@Notes", contract.Notes ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@PaymentTerms", string.IsNullOrEmpty(contract.PaymentTerms) ? (object)DBNull.Value : contract.PaymentTerms);
+            command.Parameters.AddWithValue("@Notes", string.IsNullOrEmpty(contract.Notes) ? (object)DBNull.Value : contract.Notes);
             command.Parameters.AddWithValue("@CreatedAt", contract.CreatedDate);
         }
         
