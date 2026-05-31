@@ -41,9 +41,9 @@
         <Border Grid.Row="1" Background="#ECF0F1" Padding="10" Margin="0,0,0,8">
             <WrapPanel Orientation="Horizontal">
                 <TextBlock Text="Срок с:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <DatePicker SelectedDate="{Binding DueDateFrom}" Width="120" Margin="0,0,16,0"/>
+                <DatePicker SelectedDate="{Binding DueDateFrom}" Width="150" Margin="0,0,16,0"/>
                 <TextBlock Text="по:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <DatePicker SelectedDate="{Binding DueDateTo}" Width="120" Margin="0,0,16,0"/>
+                <DatePicker SelectedDate="{Binding DueDateTo}" Width="150" Margin="0,0,16,0"/>
                 <CheckBox Content="Только неоплаченные" IsChecked="{Binding UnpaidOnly}" VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <Button Content="Применить" Background="#3498DB" Foreground="White" Command="{Binding ApplyFiltersCommand}"/>
                 <Button Content="Сбросить" Background="#95A5A6" Foreground="White" Command="{Binding ClearFiltersCommand}"/>

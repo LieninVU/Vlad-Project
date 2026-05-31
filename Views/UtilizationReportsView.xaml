@@ -46,9 +46,9 @@
                 <StackPanel Orientation="Horizontal"
                             Visibility="{Binding IsCustomPeriod, Converter={StaticResource BoolVisConverter}}">
                     <TextBlock Text="С:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <DatePicker SelectedDate="{Binding CustomPeriodStart}" Width="120" Margin="0,0,12,0"/>
+                    <DatePicker SelectedDate="{Binding CustomPeriodStart}" Width="150" Margin="0,0,12,0"/>
                     <TextBlock Text="по:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <DatePicker SelectedDate="{Binding CustomPeriodEnd}" Width="120" Margin="0,0,12,0"/>
+                    <DatePicker SelectedDate="{Binding CustomPeriodEnd}" Width="150" Margin="0,0,12,0"/>
                     <Button Content="Применить" Background="#3498DB" Foreground="White" Command="{Binding ApplyPeriodCommand}"/>
                 </StackPanel>
             </StackPanel>

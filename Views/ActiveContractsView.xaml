@@ -20,7 +20,7 @@
         <Style TargetType="DatePicker">
             <Setter Property="Padding" Value="4"/>
             <Setter Property="Margin" Value="2"/>
-            <Setter Property="Width" Value="120"/>
+            <Setter Property="Width" Value="180"/>
         </Style>
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
         <converters:IntToVisibilityInverseConverter x:Key="IntToVisibilityInverseConverter" />
