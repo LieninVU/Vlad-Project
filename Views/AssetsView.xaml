@@ -1,0 +1,410 @@
+<UserControl x:Class="ForVlad.Views.AssetsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ForVlad.Models"
+             xmlns:converters="clr-namespace:ForVlad.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="500" d:DesignWidth="800">
+    
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="MinWidth" Value="80"/>
+        </Style>
+        
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Margin" Value="2"/>
+        </Style>
+        
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="MinWidth" Value="120"/>
+        </Style>
+        
+        <converters:BoolToAvailabilityColorConverter x:Key="BoolToAvailabilityColorConverter" />
+        <converters:BoolToAvailableTextConverter x:Key="BoolToAvailableTextConverter" />
+        <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
+        <converters:IntToVisibilityInverseConverter x:Key="IntToVisibilityInverseConverter" />
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Панель инструментов -->
+        <Border Grid.Row="0" Background="#F8F9FA" Padding="10" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="+ Добавить технику" 
+                        Background="#2ECC71" 
+                        Foreground="White"
+                        FontWeight="Bold"
+                        Command="{Binding AddAssetCommand}"/>
+                
+                <Button Content="✏️ Редактировать" 
+                        Background="#3498DB" 
+                        Foreground="White"
+                        Command="{Binding EditAssetCommand}"/>
+                
+                <Button Content="🗑️ Удалить" 
+                        Background="#E74C3C" 
+                        Foreground="White"
+                        Command="{Binding DeleteAssetCommand}"/>
+                
+                <Button Content="🔄 Доступность" 
+                        Background="#9B59B6" 
+                        Foreground="White"
+                        Command="{Binding ToggleAvailabilityCommand}"
+                        ToolTip="Быстро переключить доступность без открытия формы"/>
+                
+                <Button Content="🔄 Обновить" 
+                        Background="#95A5A6" 
+                        Foreground="White"
+                        Command="{Binding RefreshCommand}"
+                        Margin="20,0,0,0"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Панель фильтрации -->
+        <Border Grid.Row="1" Background="#ECF0F1" Padding="10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" 
+                           Text="Поиск:" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,10,0"/>
+                
+                <TextBox Grid.Column="1" 
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Поиск по названию, инвентарному номеру, производителю..."
+                         MinWidth="200"/>
+                
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="20,0,0,0">
+                    <TextBlock Text="Категория:" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,10,0"/>
+                    
+                    <ComboBox ItemsSource="{Binding Categories}"
+                              SelectedItem="{Binding FilterGroup}"
+                              Width="120"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="20,0,0,0">
+                    <TextBlock Text="Подкатегория:" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,10,0"/>
+                    
+                    <ComboBox ItemsSource="{Binding Subcategories}"
+                              SelectedItem="{Binding FilterSubcategory}"
+                              Width="150"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Статистика (отдельная строка, без наложения на таблицу) -->
+        <Border Grid.Row="2" Background="#F8F9FA" Padding="8,6" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="📊" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding TotalAssetsCount, StringFormat=Всего: {0}}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding AvailableAssetsCount, StringFormat=Доступно: {0}}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding BusyAssetsCount, StringFormat=Занято: {0}}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Таблица -->
+        <Grid Grid.Row="3" x:Name="AssetsTableHost">
+            <DataGrid x:Name="AssetsDataGrid"
+                      ItemsSource="{Binding FilteredAssets}"
+                      SelectedItem="{Binding SelectedAsset}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      GridLinesVisibility="None"
+                      RowBackground="#FFFFFF"
+                      AlternatingRowBackground="#F8F9FA"
+                      HeadersVisibility="Column"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeRows="False"
+                      CanUserSortColumns="True"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      MinHeight="200"
+                      MinWidth="900"
+                      Visibility="{Binding HasAssets, Converter={StaticResource IntToVisibilityConverter}}">
+                    
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Инв. номер" 
+                                            Binding="{Binding InventoryNumber}" 
+                                            Width="110"
+                                            MinWidth="110"/>
+                        
+                        <DataGridTextColumn Header="Название" 
+                                            Binding="{Binding Name}" 
+                                            Width="200"
+                                            MinWidth="150"/>
+                        
+                        <DataGridTemplateColumn Header="Категория" Width="95" MinWidth="95">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding AssetGroup}"
+                                               FontWeight="SemiBold"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        
+                        <DataGridTextColumn Header="Подкатегория" 
+                                            Binding="{Binding Subcategory}" 
+                                            Width="120"
+                                            MinWidth="100"/>
+                        
+                        <DataGridTextColumn Header="Производитель" 
+                                            Binding="{Binding Manufacturer}" 
+                                            Width="120"
+                                            MinWidth="100"/>
+                        
+                        <DataGridTextColumn Header="Модель" 
+                                            Binding="{Binding Model}" 
+                                            Width="100"
+                                            MinWidth="80"/>
+                        
+                        <DataGridTextColumn Header="Год" 
+                                            Binding="{Binding YearOfManufacture}" 
+                                            Width="55"
+                                            MinWidth="55"/>
+                        
+                        <DataGridTextColumn Header="Аренда/мес" 
+                                            Binding="{Binding MonthlyRentalRate, StringFormat=N2}" 
+                                            Width="95"
+                                            MinWidth="90"/>
+                        
+                        <DataGridTemplateColumn Header="Доступность" Width="95" MinWidth="95">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Background="{Binding IsAvailable, Converter={StaticResource BoolToAvailabilityColorConverter}}"
+                                            CornerRadius="3"
+                                            Padding="4,2"
+                                            HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding IsAvailable, Converter={StaticResource BoolToAvailableTextConverter}}"
+                                                   Foreground="White"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="11"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        
+                        <DataGridTemplateColumn Header="Действия" Width="75" MinWidth="75">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="✏️" 
+                                            ToolTip="Редактировать"
+                                            Padding="4,2"
+                                            FontSize="10"
+                                            Command="{Binding DataContext.EditAssetFromRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                    
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="#ECF0F1"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#D6EAF8"/>
+                                    <Setter Property="BorderBrush" Value="#3498DB"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#F2F4F4"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="8,6"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource Self}}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.CellStyle>
+            </DataGrid>
+            
+            <!-- Сообщение если нет данных (таблица скрыта, чтобы не сжимались колонки) -->
+            <Border Background="#F8F9FA" 
+                    Visibility="{Binding HasAssets, Converter={StaticResource IntToVisibilityInverseConverter}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="🚜" FontSize="48" Foreground="#BDC3C7" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Техника не найдена" 
+                               FontSize="16" 
+                               Foreground="#7F8C8D" 
+                               Margin="0,10,0,0"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Измените параметры фильтрации или добавьте новую технику" 
+                               FontSize="12" 
+                               Foreground="#95A5A6" 
+                               Margin="0,5,0,0"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+        
+        <!-- Диалог создания/редактирования -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Background="#80000000"
+                Visibility="{Binding IsDialogOpen, Converter={StaticResource IntToVisibilityConverter}}">
+            <Border Background="White" 
+                    Width="560" 
+                    MaxHeight="620"
+                    CornerRadius="5"
+                    Padding="20"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="{Binding DialogTitle}" 
+                                   FontSize="18" 
+                                   FontWeight="Bold" 
+                                   Margin="0,0,0,16"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Инв. номер:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.InventoryNumber, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Наименование:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.Name, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Категория:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="2" Grid.Column="1"
+                                      ItemsSource="{Binding Categories}"
+                                      SelectedItem="{Binding DialogAssetGroup}"
+                                      Margin="5"/>
+                            
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Подкатегория:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="3" Grid.Column="1"
+                                      ItemsSource="{Binding DialogSubcategories}"
+                                      SelectedItem="{Binding EditingAsset.Subcategory}"
+                                      Margin="5"/>
+                            
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Производитель:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.Manufacturer, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Модель:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="5" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.Model, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Серийный номер:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="6" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.SerialNumber, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="7" Grid.Column="0" Text="Год выпуска:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="7" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.YearOfManufacture, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="8" Grid.Column="0" Text="Цена покупки:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="8" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.PurchasePrice, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="9" Grid.Column="0" Text="Остаточная стоимость:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="9" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.ResidualValue, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="10" Grid.Column="0" Text="Аренда/мес:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="10" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.MonthlyRentalRate, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="5"/>
+                            
+                            <TextBlock Grid.Row="11" Grid.Column="0" Text="Доступность:" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Row="11" Grid.Column="1" 
+                                      Content="Доступна для аренды"
+                                      IsChecked="{Binding EditingAsset.IsAvailable}"
+                                      Margin="5"/>
+                            
+                            <TextBlock Grid.Row="12" Grid.Column="0" Text="Примечания:" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                            <TextBox Grid.Row="12" Grid.Column="1" 
+                                     Text="{Binding EditingAsset.Notes, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     Height="50"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Margin="5"/>
+                        </Grid>
+                        
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Content="Сохранить" 
+                                    Background="#2ECC71" 
+                                    Foreground="White"
+                                    FontWeight="Bold"
+                                    Width="100"
+                                    Margin="0,0,10,0"
+                                    Command="{Binding SaveAssetCommand}"/>
+                            
+                            <Button Content="Отмена" 
+                                    Background="#95A5A6" 
+                                    Foreground="White"
+                                    Width="100"
+                                    Command="{Binding CancelCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,2451 @@
+# =============================================================================
+# DOCUMENTATION: LeasingSystem v1.0
+# DESCRIPTION: Информационная система учёта договоров аренды и лизинга 
+#              спецтехники и оборудования для ИП Апоста А.В.
+# FORMAT: Functional Specification (YAML)
+# DATE: 2026-01-01
+# AUTHOR: Sasha Bondarenko (преддипломная практика)
+# =============================================================================
+
+project:
+  name: "LeasingSystem"
+  version: "1.0.0"
+  description: "Система централизованного учёта договоров аренды и лизинга спецтехники"
+  client: "ИП Андрей Владимирович Апоста"
+  industry: "Аренда и лизинг сухопутных транспортных средств и оборудования"
+  
+  # Технологический стек
+  technology_stack:
+    platform: ".NET Framework 4.7.2"
+    ui_framework: "WPF (Windows Presentation Foundation)"
+    architecture_pattern: "MVVM (Model-View-ViewModel)"
+    database:
+      server: "Microsoft SQL Server 2019"
+      management_tool: "SQL Server Management Studio 19"
+      compatibility_level: "150"
+    orm: "Entity Framework 6.4.4 (Database-First)"
+    language: "C# 7.3"
+    testing: "xUnit 2.4.2"
+    additional_packages:
+      - "FluentValidation 11.9.0"
+      - "EPPlus 6.2.0 (Excel export)"
+      - "LiveCharts.Wpf 0.9.7 (визуализация)"
+      - "NLog 5.2.0 (логирование)"
+
+# =============================================================================
+# МОДЕЛЬ ДАННЫХ
+# =============================================================================
+
+data_models:
+  
+  # ---------------------------
+  # Сущность: Контрагент
+  # ---------------------------
+  Counterparty:
+    description: "Юридическое или физическое лицо, заключающее договор"
+    table_name: "Counterparties"
+    primary_key: "Id (INT, IDENTITY)"
+    
+    fields:
+      Id:
+        type: "int"
+        nullable: false
+        description: "Уникальный идентификатор"
+        constraints: "PRIMARY KEY, IDENTITY(1,1)"
+        
+      Name:
+        type: "nvarchar(255)"
+        nullable: false
+        description: "Полное наименование организации или ФИО ИП/физлица"
+        constraints: "NOT NULL"
+        validation: "MinLength: 3, MaxLength: 255"
+        
+      CounterpartyType:
+        type: "enum"
+        nullable: false
+        description: "Тип контрагента"
+        allowed_values: ["LegalEntity", "IndividualEntrepreneur", "Individual"]
+        default: "LegalEntity"
+        
+      Inn:
+        type: "varchar(12)"
+        nullable: false
+        description: "ИНН организации или ИП"
+        constraints: "UNIQUE, NOT NULL"
+        validation: "Regex: ^[0-9]{10}$|^[0-9]{12}$"
+        
+      Kpp:
+        type: "varchar(9)"
+        nullable: true
+        description: "КПП (только для юридических лиц)"
+        validation: "Required if CounterpartyType == LegalEntity"
+        
+      Ogrn:
+        type: "varchar(15)"
+        nullable: true
+        description: "ОГРН/ОГРНИП"
+        
+      LegalAddress:
+        type: "nvarchar(500)"
+        nullable: true
+        description: "Юридический адрес"
+        
+      ActualAddress:
+        type: "nvarchar(500)"
+        nullable: true
+        description: "Фактический адрес"
+        
+      ContactPerson:
+        type: "nvarchar(150)"
+        nullable: true
+        description: "Контактное лицо (ФИО)"
+        
+      Phone:
+        type: "varchar(20)"
+        nullable: true
+        description: "Контактный телефон"
+        validation: "Regex: ^[+]?[0-9\\s\\-\\(\\)]{10,20}$"
+        
+      Email:
+        type: "varchar(100)"
+        nullable: true
+        description: "Электронная почта"
+        validation: "Email format"
+        
+      BankName:
+        type: "nvarchar(255)"
+        nullable: true
+        description: "Наименование банка"
+        
+      BankAccount:
+        type: "varchar(20)"
+        nullable: true
+        description: "Расчётный счёт"
+        validation: "Regex: ^[0-9]{20}$"
+        
+      CorrespondentAccount:
+        type: "varchar(20)"
+        nullable: true
+        description: "Корреспондентский счёт банка"
+        
+      Bik:
+        type: "varchar(9)"
+        nullable: true
+        description: "БИК банка"
+        
+      DiscountPercent:
+        type: "decimal(5,2)"
+        nullable: true
+        description: "Персональная скидка (%)"
+        constraints: "CHECK (DiscountPercent BETWEEN 0 AND 100)"
+        default: 0.00
+        
+      Notes:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Дополнительные примечания"
+        
+      CreatedAt:
+        type: "datetime2"
+        nullable: false
+        description: "Дата создания записи"
+        default: "GETDATE()"
+        
+      UpdatedAt:
+        type: "datetime2"
+        nullable: true
+        description: "Дата последнего изменения"
+        
+      IsActive:
+        type: "bit"
+        nullable: false
+        description: "Флаг активности (мягкое удаление)"
+        default: 1
+        
+    relationships:
+      - type: "One-to-Many"
+        target: "Contract"
+        foreign_key: "CounterpartyId"
+        cascade_delete: false
+        description: "Один контрагент может иметь много договоров"
+        
+    indexes:
+      - name: "IX_Counterparty_Inn"
+        columns: ["Inn"]
+        unique: true
+      - name: "IX_Counterparty_Name"
+        columns: ["Name"]
+        unique: false
+      - name: "IX_Counterparty_Active"
+        columns: ["IsActive"]
+        unique: false
+        
+    business_rules:
+      - "При изменении ИНН требуется подтверждение администратора"
+      - "Неактивные контрагенты скрыты из списков по умолчанию"
+      - "При наличии активных договоров нельзя деактивировать контрагента"
+
+
+  # ---------------------------
+  # Сущность: Категория актива
+  # ---------------------------
+  AssetClassification:
+    description: "Иерархическая классификация техники и оборудования"
+    type: "reference_data"
+    
+    groups:
+      Vehicle:
+        name: "Прочие сухопутные транспортные средства"
+        description: "Самоходные машины, не предназначенные для дорог общего пользования"
+        subcategories:
+          ConstructionRoad:
+            name: "Строительная и дорожная техника"
+            examples: ["экскаваторы", "бульдозеры", "автогрейдеры", "фронтальные погрузчики", 
+                      "асфальтоукладчики", "дорожные катки", "автобетоносмесители"]
+            required_fields: ["VehicleBrand", "VehicleModel", "EnginePower", "RegistrationNumber"]
+            
+          IndustrialTransport:
+            name: "Промышленные транспортные средства"
+            examples: ["вилочные автопогрузчики", "ричтраки", "электротележки", 
+                      "тягачи для внутренних перевозок", "карьерные самосвалы"]
+            required_fields: ["VehicleBrand", "LoadCapacity", "PowerType"]
+            
+          OtherSelfPropelled:
+            name: "Другие самоходные средства"
+            examples: ["мотоциклы", "мопеды", "квадроциклы", "снегоходы", 
+                      "гидроциклы", "мотобуксировщики", "газонокосилки"]
+            required_fields: ["VehicleBrand", "EngineType"]
+            
+      Equipment:
+        name: "Оборудование"
+        description: "Несамоходные единицы, используемые автономно или в агрегате"
+        subcategories:
+          Trailers:
+            name: "Прицепы и полуприцепы"
+            examples: ["бортовые", "тентованные", "изотермические", "тяжеловозы", "тралы"]
+            required_fields: ["LoadCapacity", "Dimensions", "CouplingType"]
+            
+          Warehouse:
+            name: "Складская техника"
+            examples: ["гидравлические тележки", "штабелеры", "подъёмные столы", "конвейеры"]
+            required_fields: ["LoadCapacity", "LiftHeight", "PowerType"]
+            
+          Construction:
+            name: "Строительное оборудование"
+            examples: ["бетоносмесители", "виброплиты", "генераторы", "компрессоры", 
+                      "сварочные аппараты", "осветительные мачты"]
+            required_fields: ["PowerRequirements", "Weight", "Performance"]
+            
+          Attachments:
+            name: "Навесное и дополнительное оборудование"
+            examples: ["ковши", "гидромолоты", "рыхлители", "отвалы", "щётки", 
+                      "снегоочистители", "быстросъёмные механизмы"]
+            required_fields: ["CompatibleAssets", "AttachmentType", "Weight"]
+            
+          IndustrialOther:
+            name: "Прочее промышленное оборудование"
+            examples: ["насосные станции", "деревообрабатывающие станки", 
+                      "окрасочные камеры", "оборудование для алмазного бурения"]
+            required_fields: ["PowerRequirements", "Dimensions"]
+
+
+  # ---------------------------
+  # Сущность: Актив (техника/оборудование)
+  # ---------------------------
+  Asset:
+    description: "Единица техники или оборудования, доступная для аренды/лизинга"
+    table_name: "Assets"
+    primary_key: "Id (INT, IDENTITY)"
+    
+    fields:
+      Id:
+        type: "int"
+        nullable: false
+        constraints: "PRIMARY KEY, IDENTITY(1,1)"
+        
+      InventoryNumber:
+        type: "varchar(50)"
+        nullable: false
+        description: "Инвентарный номер (внутренний учёт)"
+        constraints: "UNIQUE, NOT NULL"
+        validation: "Regex: ^[A-Z]{2}-[0-9]{4,6}$"
+        example: "EX-001234"
+        
+      Name:
+        type: "nvarchar(200)"
+        nullable: false
+        description: "Наименование модели/комплекта"
+        example: "Экскаватор-погрузчик JCB 3CX"
+        
+      Group:
+        type: "enum"
+        nullable: false
+        description: "Группа актива"
+        allowed_values: ["Vehicle", "Equipment"]
+        
+      Subcategory:
+        type: "varchar(50)"
+        nullable: false
+        description: "Подкатегория (из AssetClassification)"
+        validation: "Must match selected Group"
+        
+      # Поля для транспортных средств
+      VehicleBrand:
+        type: "nvarchar(100)"
+        nullable: true
+        description: "Марка ТС"
+        required_if: "Group == Vehicle"
+        
+      VehicleModel:
+        type: "nvarchar(100)"
+        nullable: true
+        description: "Модель ТС"
+        required_if: "Group == Vehicle"
+        
+      VinNumber:
+        type: "varchar(17)"
+        nullable: true
+        description: "VIN-номер / заводской номер"
+        validation: "Regex: ^[A-HJ-NPR-Z0-9]{17}$"
+        required_if: "Group == Vehicle AND Subcategory != OtherSelfPropelled"
+        
+      RegistrationNumber:
+        type: "varchar(15)"
+        nullable: true
+        description: "Государственный регистрационный номер"
+        example: "А123БВ777"
+        
+      ManufactureYear:
+        type: "int"
+        nullable: true
+        description: "Год выпуска"
+        constraints: "CHECK (ManufactureYear BETWEEN 1950 AND 2030)"
+        
+      EnginePower:
+        type: "decimal(6,2)"
+        nullable: true
+        description: "Мощность двигателя, кВт"
+        unit: "kW"
+        
+      EngineType:
+        type: "enum"
+        nullable: true
+        allowed_values: ["Diesel", "Gasoline", "Electric", "Hybrid", "Other"]
+        
+      LoadCapacity:
+        type: "decimal(8,2)"
+        nullable: true
+        description: "Грузоподъёмность, кг"
+        unit: "kg"
+        
+      # Поля для оборудования
+      EquipmentType:
+        type: "nvarchar(100)"
+        nullable: true
+        description: "Тип оборудования"
+        required_if: "Group == Equipment"
+        
+      PowerRequirements:
+        type: "nvarchar(100)"
+        nullable: true
+        description: "Требования к электропитанию"
+        example: "380V, 50Hz, 15kW"
+        required_if: "Group == Equipment AND requires_power"
+        
+      Weight:
+        type: "decimal(8,2)"
+        nullable: true
+        description: "Масса, кг"
+        unit: "kg"
+        
+      Dimensions:
+        type: "nvarchar(50)"
+        nullable: true
+        description: "Габариты (Д×Ш×В), см"
+        example: "450×200×280"
+        
+      CompatibleAssets:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Совместимые ТС (для навесного оборудования)"
+        format: "JSON array of Asset IDs"
+        
+      # Финансовые параметры
+      HourlyRate:
+        type: "decimal(10,2)"
+        nullable: false
+        description: "Ставка аренды в час, руб."
+        constraints: "CHECK (HourlyRate >= 0)"
+        default: 0.00
+        
+      DailyRate:
+        type: "decimal(10,2)"
+        nullable: false
+        description: "Ставка аренды в сутки, руб."
+        constraints: "CHECK (DailyRate >= 0)"
+        default: 0.00
+        
+      MonthlyRate:
+        type: "decimal(10,2)"
+        nullable: true
+        description: "Ставка аренды в месяц, руб. (для лизинга)"
+        
+      DepositAmount:
+        type: "decimal(10,2)"
+        nullable: true
+        description: "Залоговая сумма, руб."
+        
+      # Статус и состояние
+      Condition:
+        type: "enum"
+        nullable: false
+        description: "Техническое состояние"
+        allowed_values: ["New", "Good", "Satisfactory", "NeedsRepair", "OutOfOrder"]
+        default: "Good"
+        
+      IsAvailable:
+        type: "bit"
+        nullable: false
+        description: "Доступно для аренды"
+        default: 1
+        business_rule: "Автоматически = false при наличии активного договора"
+        
+      Location:
+        type: "nvarchar(100)"
+        nullable: true
+        description: "Текущее местоположение"
+        example: "Склад №1, г. Сочи"
+        
+      LastMaintenanceDate:
+        type: "date"
+        nullable: true
+        description: "Дата последнего ТО"
+        
+      NextMaintenanceDate:
+        type: "date"
+        nullable: true
+        description: "Плановая дата следующего ТО"
+        
+      Photos:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Пути к фотографиям (JSON array)"
+        format: '["/images/asset_123_1.jpg", "/images/asset_123_2.jpg"]'
+        
+      Notes:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Дополнительная информация"
+        
+      CreatedAt:
+        type: "datetime2"
+        nullable: false
+        default: "GETDATE()"
+        
+      UpdatedAt:
+        type: "datetime2"
+        nullable: true
+        
+      DeletedAt:
+        type: "datetime2"
+        nullable: true
+        description: "Дата мягкого удаления"
+        
+    relationships:
+      - type: "One-to-Many"
+        target: "ContractSpecification"
+        foreign_key: "AssetId"
+        cascade_delete: false
+        
+    indexes:
+      - name: "IX_Asset_InventoryNumber"
+        columns: ["InventoryNumber"]
+        unique: true
+      - name: "IX_Asset_Group_Subcategory"
+        columns: ["Group", "Subcategory"]
+      - name: "IX_Asset_Availability"
+        columns: ["IsAvailable", "Condition"]
+        
+    business_rules:
+      - "Нельзя создать договор на актив с Condition = OutOfOrder"
+      - "При изменении IsAvailable проверять наличие активных договоров"
+      - "HourlyRate и DailyRate не могут быть одновременно нулевыми"
+
+
+  # ---------------------------
+  # Сущность: Договор
+  # ---------------------------
+  Contract:
+    description: "Договор аренды или лизинга"
+    table_name: "Contracts"
+    primary_key: "Id (INT, IDENTITY)"
+    
+    fields:
+      Id:
+        type: "int"
+        nullable: false
+        constraints: "PRIMARY KEY, IDENTITY(1,1)"
+        
+      ContractNumber:
+        type: "varchar(30)"
+        nullable: false
+        description: "Уникальный номер договора"
+        format: "{TYPE}-{YEAR}-{SEQ}"
+        example: "AR-2024-001, LS-2024-015"
+        constraints: "UNIQUE, NOT NULL"
+        auto_generation: true
+        
+      Type:
+        type: "enum"
+        nullable: false
+        description: "Тип договора"
+        allowed_values: 
+          Rental: "Аренда (краткосрочная)"
+          Leasing: "Лизинг (долгосрочная с выкупом)"
+          
+      Status:
+        type: "enum"
+        nullable: false
+        description: "Статус договора"
+        allowed_values:
+          Draft: "Черновик"
+          Signed: "Подписан"
+          Active: "Действует"
+          Suspended: "Приостановлен"
+          Completed: "Завершён"
+          Terminated: "Расторгнут"
+        default: "Draft"
+        workflow_transitions:
+          Draft: ["Signed", "Deleted"]
+          Signed: ["Active", "Terminated"]
+          Active: ["Suspended", "Completed", "Terminated"]
+          Suspended: ["Active", "Terminated"]
+          Completed: []
+          Terminated: []
+          
+      CounterpartyId:
+        type: "int"
+        nullable: false
+        description: "Ссылка на контрагента"
+        constraints: "FOREIGN KEY REFERENCES Counterparties(Id)"
+        
+      SignedDate:
+        type: "date"
+        nullable: false
+        description: "Дата подписания"
+        validation: "Cannot be future date"
+        
+      StartDate:
+        type: "date"
+        nullable: false
+        description: "Дата начала действия"
+        validation: ">= SignedDate"
+        
+      EndDate:
+        type: "date"
+        nullable: true
+        description: "Дата окончания (null для бессрочных)"
+        validation: "> StartDate if not null"
+        
+      AutoRenewal:
+        type: "bit"
+        nullable: false
+        description: "Автопродление"
+        default: 0
+        
+      TotalAmount:
+        type: "decimal(12,2)"
+        nullable: false
+        description: "Общая сумма договора, руб."
+        calculated: "SUM(Specifications.TotalPrice)"
+        constraints: "CHECK (TotalAmount >= 0)"
+        
+      Currency:
+        type: "varchar(3)"
+        nullable: false
+        description: "Валюта расчётов"
+        default: "RUB"
+        allowed_values: ["RUB", "USD", "EUR"]
+        
+      PaymentTerms:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Условия оплаты"
+        examples: 
+          - "Предоплата 30%, остаток по окончании"
+          - "Ежемесячные платежи до 5-го числа"
+          - "Постоплата по акту выполненных работ"
+          
+      PaymentScheduleType:
+        type: "enum"
+        nullable: false
+        description: "Тип графика платежей"
+        allowed_values:
+          OneTime: "Единовременно"
+          Monthly: "Ежемесячно"
+          Custom: "Индивидуальный график"
+        default: "Monthly"
+        
+      DepositPaid:
+        type: "decimal(10,2)"
+        nullable: false
+        description: "Внесённый залог, руб."
+        default: 0.00
+        
+      ManagerName:
+        type: "nvarchar(100)"
+        nullable: true
+        description: "ФИО менеджера, оформившего договор"
+        
+      Notes:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Примечания и особые условия"
+        
+      CreatedAt:
+        type: "datetime2"
+        nullable: false
+        default: "GETDATE()"
+        
+      UpdatedAt:
+        type: "datetime2"
+        nullable: true
+        
+    relationships:
+      - type: "Many-to-One"
+        target: "Counterparty"
+        foreign_key: "CounterpartyId"
+        
+      - type: "One-to-Many"
+        target: "ContractSpecification"
+        foreign_key: "ContractId"
+        cascade_delete: true
+        
+      - type: "One-to-Many"
+        target: "PaymentSchedule"
+        foreign_key: "ContractId"
+        cascade_delete: true
+        
+    indexes:
+      - name: "IX_Contract_Number"
+        columns: ["ContractNumber"]
+        unique: true
+      - name: "IX_Contract_Status_Dates"
+        columns: ["Status", "StartDate", "EndDate"]
+      - name: "IX_Contract_Counterparty"
+        columns: ["CounterpartyId"]
+        
+    business_rules:
+      - "Номер договора генерируется автоматически при смене статуса на Signed"
+      - "Нельзя активировать договор без хотя бы одной позиции спецификации"
+      - "При изменении дат пересчитывать график платежей"
+      - "Завершённый договор нельзя редактировать, только просматривать"
+
+
+  # ---------------------------
+  # Сущность: Спецификация договора
+  # ---------------------------
+  ContractSpecification:
+    description: "Позиция договора — конкретная единица техники/оборудования"
+    table_name: "ContractSpecifications"
+    primary_key: "Id (INT, IDENTITY)"
+    
+    fields:
+      Id:
+        type: "int"
+        nullable: false
+        constraints: "PRIMARY KEY, IDENTITY(1,1)"
+        
+      ContractId:
+        type: "int"
+        nullable: false
+        constraints: "FOREIGN KEY REFERENCES Contracts(Id) ON DELETE CASCADE"
+        
+      AssetId:
+        type: "int"
+        nullable: false
+        constraints: "FOREIGN KEY REFERENCES Assets(Id)"
+        
+      Quantity:
+        type: "int"
+        nullable: false
+        description: "Количество единиц"
+        constraints: "CHECK (Quantity > 0)"
+        default: 1
+        
+      PeriodType:
+        type: "enum"
+        nullable: false
+        description: "Единица измерения периода аренды"
+        allowed_values: ["Hour", "Shift", "Day", "Week", "Month"]
+        default: "Day"
+        
+      UnitPrice:
+        type: "decimal(10,2)"
+        nullable: false
+        description: "Цена за единицу в указанный период, руб."
+        constraints: "CHECK (UnitPrice >= 0)"
+        
+      DiscountPercent:
+        type: "decimal(5,2)"
+        nullable: false
+        description: "Скидка на позицию, %"
+        constraints: "CHECK (DiscountPercent BETWEEN 0 AND 100)"
+        default: 0.00
+        
+      TotalPrice:
+        type: "decimal(12,2)"
+        nullable: false
+        description: "Итоговая цена позиции"
+        calculated: "Quantity * UnitPrice * (1 - DiscountPercent/100)"
+        persisted: true
+        
+      StartDateTime:
+        type: "datetime2"
+        nullable: true
+        description: "Фактическое начало использования"
+        note: "Может отличаться от StartDate договора"
+        
+      EndDateTime:
+        type: "datetime2"
+        nullable: true
+        description: "Фактическое окончание использования"
+        
+      HandoverActNumber:
+        type: "varchar(30)"
+        nullable: true
+        description: "Номер акта приёма-передачи"
+        
+      ReturnActNumber:
+        type: "varchar(30)"
+        nullable: true
+        description: "Номер акта возврата"
+        
+      ConditionAtHandover:
+        type: "enum"
+        nullable: true
+        description: "Состояние при передаче"
+        allowed_values: ["Excellent", "Good", "Satisfactory", "Damaged"]
+        
+      ConditionAtReturn:
+        type: "enum"
+        nullable: true
+        description: "Состояние при возврате"
+        allowed_values: ["Excellent", "Good", "Satisfactory", "Damaged", "Lost"]
+        
+      DamageDescription:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Описание повреждений при возврате"
+        
+      DamageCost:
+        type: "decimal(10,2)"
+        nullable: true
+        description: "Стоимость ущерба, руб."
+        
+      AdditionalConditions:
+        type: "nvarchar(MAX)"
+        nullable: true
+        description: "Доп. условия по позиции"
+        examples:
+          - "Работа только в светлое время суток"
+          - "Обязательное присутствие оператора"
+          - "Запрет на работу в дождь"
+          
+    relationships:
+      - type: "Many-to-One"
+        target: "Contract"
+        foreign_key: "ContractId"
+        
+      - type: "Many-to-One"
+        target: "Asset"
+        foreign_key: "AssetId"
+        
+    indexes:
+      - name: "IX_Spec_Contract_Asset"
+        columns: ["ContractId", "AssetId"]
+        unique: true
+        description: "Один актив не может быть добавлен дважды в один договор"
+        
+    business_rules:
+      - "При добавлении позиции проверять доступность актива на указанный период"
+      - "При возврате актива с повреждениями создавать запись в DamageLog"
+      - "TotalPrice пересчитывается при изменении любой составляющей"
+
+
+  # ---------------------------
+  # Сущность: График платежей
+  # ---------------------------
+  PaymentSchedule:
+    description: "Плановые и фактические платежи по договору"
+    table_name: "PaymentSchedule"
+    primary_key: "Id (INT, IDENTITY)"
+    
+    fields:
+      Id:
+        type: "int"
+        nullable: false
+        constraints: "PRIMARY KEY, IDENTITY(1,1)"
+        
+      ContractId:
+        type: "int"
+        nullable: false
+        constraints: "FOREIGN KEY REFERENCES Contracts(Id) ON DELETE CASCADE"
+        
+      PaymentNumber:
+        type: "int"
+        nullable: false
+        description: "Порядковый номер платежа"
+        example: 1, 2, 3...
+        
+      Description:
+        type: "nvarchar(100)"
+        nullable: true
+        description: "Назначение платежа"
+        examples: ["Аванс", "Ежемесячный платёж", "Окончательный расчёт", "Залог"]
+        
+      DueDate:
+        type: "date"
+        nullable: false
+        description: "Плановая дата платежа"
+        
+      Amount:
+        type: "decimal(10,2)"
+        nullable: false
+        description: "Сумма платежа, руб."
+        constraints: "CHECK (Amount > 0)"
+        
+      IsPaid:
+        type: "bit"
+        nullable: false
+        description: "Факт оплаты"
+        default: 0
+        
+      PaidDate:
+        type: "date"
+        nullable: true
+        description: "Фактическая дата оплаты"
+        validation: "Required if IsPaid = true"
+        
+      PaidAmount:
+        type: "decimal(10,2)"
+        nullable: true
+        description: "Фактически оплаченная сумма"
+        note: "Может отличаться от Amount при частичной оплате"
+        
+      PaymentMethod:
+        type: "enum"
+        nullable: true
+        description: "Способ оплаты"
+        allowed_values: ["Cash", "BankTransfer", "Card", "Other"]
+        
+      DocumentNumber:
+        type: "varchar(50)"
+        nullable: true
+        description: "Номер платёжного документа"
+        examples: ["ПКО-123", "Платёжное поручение №456"]
+        
+      DocumentDate:
+        type: "date"
+        nullable: true
+        description: "Дата платёжного документа"
+        
+      Notes:
+        type: "nvarchar(255)"
+        nullable: true
+        description: "Примечания к платежу"
+        
+    relationships:
+      - type: "Many-to-One"
+        target: "Contract"
+        foreign_key: "ContractId"
+        
+    indexes:
+      - name: "IX_Payment_Contract_DueDate"
+        columns: ["ContractId", "DueDate"]
+      - name: "IX_Payment_Overdue"
+        columns: ["IsPaid", "DueDate"]
+        filtered: "WHERE IsPaid = 0"
+        
+    business_rules:
+      - "Платёж считается просроченным если IsPaid=0 AND DueDate < GETDATE()"
+      - "При полной оплате договора автоматически менять статус на Completed"
+      - "Запрет на удаление оплаченных платежей"
+
+
+  # ---------------------------
+  # Вспомогательные сущности
+  # ---------------------------
+  AuditLog:
+    description: "Журнал аудита изменений критичных данных"
+    table_name: "AuditLogs"
+    
+    fields:
+      Id: { type: "int", pk: true }
+      TableName: { type: "varchar(50)" }
+      RecordId: { type: "int" }
+      Action: { type: "enum", values: ["INSERT", "UPDATE", "DELETE"] }
+      ChangedBy: { type: "nvarchar(100)" }
+      ChangedAt: { type: "datetime2", default: "GETDATE()" }
+      OldValues: { type: "nvarchar(MAX)", format: "JSON" }
+      NewValues: { type: "nvarchar(MAX)", format: "JSON" }
+      IPAddress: { type: "varchar(45)" }
+      
+  DocumentTemplate:
+    description: "Шаблоны печатных форм документов"
+    table_name: "DocumentTemplates"
+    
+    fields:
+      Id: { type: "int", pk: true }
+      DocumentType: { type: "enum", values: ["Contract", "ActHandover", "ActReturn", "Invoice"] }
+      TemplateName: { type: "nvarchar(100)" }
+      FileContent: { type: "varbinary(MAX)", description: "HTML/DOCX шаблон" }
+      Variables: { type: "nvarchar(MAX)", format: "JSON", description: "Список переменных для подстановки" }
+      IsActive: { type: "bit", default: 1 }
+
+
+# =============================================================================
+# БИЗНЕС-ПРОЦЕССЫ
+# =============================================================================
+
+business_processes:
+
+  # ---------------------------
+  # Процесс: Регистрация контрагента
+  # ---------------------------
+  RegisterCounterparty:
+    trigger: "Пользователь нажимает 'Новый контрагент'"
+    preconditions:
+      - "Пользователь имеет роль Manager или Admin"
+      - "Поле ИНН не занято в системе"
+    
+    steps:
+      - step: 1
+        action: "Открыть форму ввода данных контрагента"
+        ui: "ModalWindow: CounterpartyEditView"
+        
+      - step: 2
+        action: "Валидация введённых данных"
+        rules:
+          - "ИНН: формат и уникальность"
+          - "Наименование: не пустое, 3-255 символов"
+          - "Для юрлиц: обязательные КПП, ОГРН"
+          - "Контакты: валидный формат телефона/email"
+        on_error: "Показать ошибки валидации, заблокировать сохранение"
+        
+      - step: 3
+        action: "Сохранение в БД"
+        transaction: true
+        operations:
+          - "INSERT INTO Counterparties (...)"
+          - "INSERT INTO AuditLogs (Action='INSERT', ...)"
+          
+      - step: 4
+        action: "Обновление кэша справочников"
+        event: "CounterpartyAdded"
+        
+      - step: 5
+        action: "Закрытие формы, показ уведомления"
+        ui: "ToastNotification: 'Контрагент успешно добавлен'"
+        
+    postconditions:
+      - "Контрагент доступен для выбора в договорах"
+      - "Запись появилась в журнале аудита"
+      
+    error_handling:
+      - "SQL Exception: откат транзакции, логирование, сообщение 'Ошибка сохранения'"
+      - "Validation Exception: возврат к форме с подсветкой ошибок"
+
+
+  # ---------------------------
+  # Процесс: Добавление актива
+  # ---------------------------
+  AddAsset:
+    trigger: "Пользователь нажимает 'Новая единица техники'"
+    
+    steps:
+      - step: 1
+        action: "Выбор группы актива (Vehicle/Equipment)"
+        ui: "RadioButton с динамической подгрузкой подкатегорий"
+        
+      - step: 2
+        action: "Отображение релевантных полей"
+        logic: "DynamicForm: показывать поля только для выбранной группы"
+        
+      - step: 3
+        action: "Ввод инвентарного номера"
+        validation: 
+          - "Уникальность в таблице Assets"
+          - "Соответствие маске: {2 буквы}-{4-6 цифр}"
+        auto_suggest: "Система предлагает следующий свободный номер"
+        
+      - step: 4
+        action: "Загрузка фотографий"
+        limits:
+          - "Макс. 10 файлов"
+          - "Форматы: JPG, PNG, WEBP"
+          - "Макс. размер: 5 МБ каждый"
+        storage: "Файловая система: /assets/photos/{AssetId}/"
+        
+      - step: 5
+        action: "Установка ставок аренды"
+        business_rule: "DailyRate >= HourlyRate * 8 (рабочая смена)"
+        warning: "Если правило нарушено — показать предупреждение"
+        
+      - step: 6
+        action: "Сохранение"
+        operations:
+          - "INSERT INTO Assets"
+          - "Создание записи в AssetHistory (начальное состояние)"
+          
+    postconditions:
+      - "Актив появляется в справочнике со статусом 'Доступен'"
+      - "Генерируется QR-код для инвентарной бирки (опционально)"
+
+
+  # ---------------------------
+  # Процесс: Создание договора
+  # ---------------------------
+  CreateContract:
+    trigger: "Пользователь нажимает 'Новый договор'"
+    
+    phases:
+      
+      phase: "1. Основная информация"
+      steps:
+        - action: "Выбор типа договора (Rental/Leasing)"
+          effect: "Меняется префикс номера и доступные опции"
+          
+        - action: "Выбор контрагента"
+          ui: "ComboBox с поиском по Name/INN"
+          quick_actions:
+            - "Создать нового в модальном окне"
+            - "Просмотреть карточку существующего"
+            
+        - action: "Установка дат"
+          validation:
+            - "StartDate >= SignedDate"
+            - "EndDate > StartDate (если указана)"
+          auto_calculate: "При выборе шаблона графика платежей"
+          
+      phase: "2. Спецификация"
+      steps:
+        - action: "Добавление позиции"
+          ui: "Modal: AssetSelector"
+          filters:
+            - "Group/Subcategory по выбору"
+            - "IsAvailable = true"
+            - "Доступность на период [StartDate, EndDate]"
+            
+        - action: "Проверка конфликтов"
+          logic: |
+            SELECT COUNT(*) FROM ContractSpecifications cs
+            JOIN Contracts c ON cs.ContractId = c.Id
+            WHERE cs.AssetId = @AssetId
+            AND c.Status IN ('Active', 'Signed')
+            AND (
+              (@StartDate < c.EndDate OR c.EndDate IS NULL)
+              AND (@EndDate > c.StartDate)
+            )
+          on_conflict: "Показать занятые периоды, предложить альтернативы"
+          
+        - action: "Настройка параметров позиции"
+          fields:
+            - "Quantity (по умолчанию 1)"
+            - "PeriodType (из настроек актива)"
+            - "UnitPrice (по умолчанию из Asset, можно изменить)"
+            - "DiscountPercent (из настроек контрагента, можно изменить)"
+            
+        - action: "Авто-расчёт"
+          triggers:
+            - "Изменение Quantity/UnitPrice/Discount → пересчёт TotalPrice"
+            - "Изменение спецификации → пересчёт Contract.TotalAmount"
+            
+      phase: "3. График платежей"
+      steps:
+        - action: "Выбор типа графика"
+          options:
+            OneTime: "Один платёж на сумму TotalAmount"
+            Monthly: "Равные платежи по месяцам + финальный"
+            Custom: "Ручное добавление строк"
+            
+        - action: "Генерация шаблона"
+          logic: |
+            IF PaymentScheduleType == 'Monthly':
+              months = DateDiff(month, StartDate, EndDate)
+              base_amount = TotalAmount / months
+              FOR i IN 1..months:
+                INSERT PaymentSchedule (
+                  PaymentNumber = i,
+                  DueDate = DateAdd(month, i-1, StartDate),
+                  Amount = base_amount,
+                  Description = CASE 
+                    WHEN i=1 THEN 'Аванс'
+                    WHEN i=months THEN 'Окончательный'
+                    ELSE 'Ежемесячный'
+                  END
+                )
+                
+        - action: "Редактирование графика"
+          permissions: "Только до статуса 'Signed'"
+          
+      phase: "4. Финализация"
+      steps:
+        - action: "Предпросмотр документа"
+          template: "Contract_{Type}_{Version}.html"
+          variables: "Подстановка данных из Contract + Specifications + Counterparty"
+          
+        - action: "Подписание"
+          actions:
+            - "Смена статуса: Draft → Signed"
+            - "Генерация финального номера: {TYPE}-{YEAR}-{SEQ}"
+            - "Блокировка редактирования основных полей"
+            - "Создание записи в AuditLog"
+            - "Отправка уведомления (email/SMS) контрагенту (опционально)"
+            
+    business_rules:
+      - "Договор нельзя подписать без хотя бы одной позиции спецификации"
+      - "При подписании все активы в спецификации помечаются как недоступные на период"
+      - "Изменение дат после подписания требует создания доп. соглашения"
+
+
+  # ---------------------------
+  # Процесс: Возврат актива
+  # ---------------------------
+  ReturnAsset:
+    trigger: "Пользователь открывает договор → вкладка 'Спецификация' → кнопка 'Вернуть'"
+    
+    steps:
+      - step: 1
+        action: "Проверка статуса договора"
+        precondition: "Contract.Status == 'Active'"
+        
+      - step: 2
+        action: "Осмотр актива"
+        ui: "Form: AssetReturnInspection"
+        fields:
+          - "ConditionAtReturn (обязательно)"
+          - "Фото повреждений (опционально)"
+          - "Описание повреждений (если Condition != Excellent/Good)"
+          - "Показания счётчиков (моточасы, км) — если применимо"
+          
+      - step: 3
+        action: "Расчёт дополнительных сумм"
+        logic: |
+          IF ConditionAtReturn IN ['Damaged', 'Lost']:
+            DamageCost = EstimateDamage(photos, description)
+            AddToInvoice(DamageCost)
+          IF ActualUsage > ContractedUsage:
+            OverageFee = (ActualUsage - ContractedUsage) * HourlyRate
+            AddToInvoice(OverageFee)
+            
+      - step: 4
+        action: "Формирование акта возврата"
+        template: "ActReturn_v2.html"
+        signatures: ["Арендодатель", "Арендатор"]
+        output: "PDF + запись в Documents table"
+        
+      - step: 5
+        action: "Обновление статусов"
+        operations:
+          - "ContractSpecification.EndDateTime = NOW()"
+          - "Asset.IsAvailable = true (если нет других активных договоров)"
+          - "Asset.Condition = ConditionAtReturn (если ухудшилось)"
+          - "IF all specifications returned: Contract.Status = 'Completed'"
+          
+      - step: 6
+        action: "Уведомление бухгалтерии"
+        event: "AssetReturned"
+        payload: { ContractId, AssetId, DamageCost, OverageFee }
+
+
+# =============================================================================
+# ПОЛЬЗОВАТЕЛЬСКИЙ ИНТЕРФЕЙС
+# =============================================================================
+
+ui_components:
+
+  # ---------------------------
+  # Главная навигация
+  # ---------------------------
+  MainWindow:
+    type: "Window"
+    style: "ModernDark"
+    
+    layout:
+      - component: "Sidebar"
+        position: "Left"
+        width: 200
+        items:
+          - id: "nav_dashboard"
+            icon: "📊"
+            label: "Панель управления"
+            view: "DashboardView"
+            roles: ["Admin", "Manager", "Accountant"]
+            
+          - id: "nav_contracts"
+            icon: "📋"
+            label: "Договоры"
+            view: "ContractsListView"
+            submenu:
+              - "Все договоры"
+              - "Действующие"
+              - "Черновики"
+              - "Архив"
+              
+          - id: "nav_counterparties"
+            icon: "👥"
+            label: "Контрагенты"
+            view: "CounterpartiesListView"
+            
+          - id: "nav_assets"
+            icon: "🚜"
+            label: "Техника"
+            view: "AssetsListView"
+            submenu:
+              - "Транспортные средства"
+              - "Оборудование"
+              - "Навесное оборудование"
+              
+          - id: "nav_reports"
+            icon: "📈"
+            label: "Отчёты"
+            view: "ReportsView"
+            
+          - id: "nav_settings"
+            icon: "⚙️"
+            label: "Настройки"
+            view: "SettingsView"
+            roles: ["Admin"]
+            
+      - component: "ContentArea"
+        position: "Right"
+        description: "Динамическая загрузка View по навигации"
+        
+      - component: "StatusBar"
+        position: "Bottom"
+        items:
+          - "Текущий пользователь: {UserName}"
+          - "Подключение к БД: {ConnectionStatus}"
+          - "Версия: {AppVersion}"
+
+
+  # ---------------------------
+  # Список договоров
+  # ---------------------------
+  ContractsListView:
+    type: "UserControl"
+    viewmodel: "ContractsListViewModel"
+    
+    components:
+      - component: "FilterPanel"
+        location: "Top"
+        collapsible: true
+        filters:
+          - name: "Status"
+            type: "MultiSelectComboBox"
+            source: "ContractStatus enum"
+            default: ["Active", "Signed"]
+            
+          - name: "Type"
+            type: "CheckBoxGroup"
+            options: ["Rental", "Leasing"]
+            
+          - name: "DateRange"
+            type: "DateRangePicker"
+            fields: ["StartDate", "EndDate"]
+            
+          - name: "Counterparty"
+            type: "SearchableComboBox"
+            source: "Counterparties (IsActive=true)"
+            placeholder: "Поиск по названию или ИНН"
+            
+          - name: "Asset"
+            type: "SearchableComboBox"
+            source: "Assets (grouped by category)"
+            placeholder: "Поиск техники"
+            
+        actions:
+          - label: "Применить"
+            command: "ApplyFiltersCommand"
+          - label: "Сбросить"
+            command: "ResetFiltersCommand"
+            
+      - component: "DataGrid"
+        name: "ContractsGrid"
+        items_source: "{Binding FilteredContracts}"
+        selection_mode: "Single"
+        columns:
+          - header: "№"
+            binding: "ContractNumber"
+            width: "120"
+            sortable: true
+            
+          - header: "Контрагент"
+            binding: "Counterparty.Name"
+            width: "200"
+            sortable: true
+            
+          - header: "Тип"
+            binding: "Type"
+            width: "80"
+            template: "ContractTypeBadge" # цветной бейдж
+            
+          - header: "Статус"
+            binding: "Status"
+            width: "100"
+            template: "ContractStatusBadge" # цвет + иконка
+            
+          - header: "Период"
+            binding: "PeriodDisplay" # "01.01.2024 — 31.12.2024"
+            width: "150"
+            
+          - header: "Сумма"
+            binding: "TotalAmount"
+            width: "100"
+            string_format: "{0:C0}"
+            horizontal_alignment: "Right"
+            
+          - header: "Менеджер"
+            binding: "ManagerName"
+            width: "120"
+            
+          - header: "Действия"
+            width: "100"
+            template: "ContractActionsCell"
+            buttons:
+              - icon: "👁️"
+                tooltip: "Просмотр"
+                command: "ViewContractCommand"
+                command_parameter: "{Binding Id}"
+                
+              - icon: "✏️"
+                tooltip: "Редактировать"
+                command: "EditContractCommand"
+                visible: "{Binding CanEdit}" # Status in [Draft, Signed]
+                
+              - icon: "🖨️"
+                tooltip: "Печать"
+                command: "PrintContractCommand"
+                
+        context_menu:
+          - header: "Открыть"
+            command: "ViewContractCommand"
+          - header: "Изменить статус"
+            submenu: "AvailableStatusTransitions"
+          - header: "Экспорт строки"
+            command: "ExportRowCommand"
+          - separator: true
+          - header: "Удалить"
+            command: "DeleteContractCommand"
+            visible: "{Binding CanDelete}"
+            confirmation: "Вы уверены? Это действие нельзя отменить."
+            
+      - component: "Pagination"
+        location: "Bottom"
+        page_size_options: [25, 50, 100]
+        default_page_size: 25
+        
+      - component: "Toolbar"
+        location: "BottomRight"
+        buttons:
+          - label: "➕ Новый договор"
+            command: "CreateNewContractCommand"
+            style: "PrimaryButton"
+            shortcut: "Ctrl+N"
+            
+          - label: "📤 Экспорт"
+            command: "ExportToExcelCommand"
+            dropdown:
+              - "Текущая страница"
+              - "Все результаты"
+              - "Только выделенные"
+              
+          - label: "🔄 Обновить"
+            command: "RefreshCommand"
+            shortcut: "F5"
+
+
+  # ---------------------------
+  # Форма редактирования договора
+  # ---------------------------
+  ContractEditView:
+    type: "Window"
+    viewmodel: "ContractEditViewModel"
+    modal: true
+    size: "1000x700"
+    
+    layout:
+      - component: "TabControl"
+        tabs:
+          
+          - header: "📄 Основное"
+            content:
+              - component: "FormGroup"
+                title: "Информация о договоре"
+                fields:
+                  - name: "ContractNumber"
+                    type: "TextBox"
+                    binding: "Contract.ContractNumber"
+                    is_readonly: "{Binding IsSigned}"
+                    watermark: "Генерируется автоматически"
+                    
+                  - name: "Type"
+                    type: "ComboBox"
+                    binding: "Contract.Type"
+                    items_source: "{Binding ContractTypes}"
+                    is_enabled: "{Binding IsDraft}"
+                    
+                  - name: "Status"
+                    type: "ComboBox"
+                    binding: "Contract.Status"
+                    items_source: "{Binding AvailableStatuses}" # filtered by workflow
+                    visible: "{Binding CanChangeStatus}"
+                    
+                  - name: "SignedDate"
+                    type: "DatePicker"
+                    binding: "Contract.SignedDate"
+                    max_date: "{x:Static sys:DateTime.Today}"
+                    
+                  - name: "DateRange"
+                    type: "DateRangePicker"
+                    start_binding: "Contract.StartDate"
+                    end_binding: "Contract.EndDate"
+                    validation: "EndDate > StartDate"
+                    
+                  - name: "AutoRenewal"
+                    type: "CheckBox"
+                    binding: "Contract.AutoRenewal"
+                    label: "Автопродление"
+                    
+              - component: "FormGroup"
+                title: "Контрагент"
+                fields:
+                  - name: "Counterparty"
+                    type: "SearchableComboBox"
+                    binding: "SelectedCounterparty"
+                    display_member: "Name"
+                    selected_value_path: "Id"
+                    items_source: "{Binding ActiveCounterparties}"
+                    placeholder: "Начните вводить название или ИНН..."
+                    
+                  - name: "CounterpartyActions"
+                    type: "StackPanel"
+                    orientation: "Horizontal"
+                    children:
+                      - Button:
+                          content: "👁️ Просмотреть"
+                          command: "ViewCounterpartyCommand"
+                          enabled: "{Binding SelectedCounterparty != null}"
+                      - Button:
+                          content: "➕ Создать нового"
+                          command: "CreateCounterpartyCommand"
+                          
+                  - name: "CounterpartyInfo"
+                    type: "InfoCard"
+                    visible: "{Binding SelectedCounterparty != null}"
+                    fields:
+                      - label: "ИНН"
+                        value: "{Binding SelectedCounterparty.Inn}"
+                      - label: "Телефон"
+                        value: "{Binding SelectedCounterparty.Phone}"
+                      - label: "Email"
+                        value: "{Binding SelectedCounterparty.Email}"
+                        
+          - header: "📦 Спецификация"
+            content:
+              - component: "Toolbar"
+                buttons:
+                  - label: "➕ Добавить позицию"
+                    command: "AddSpecificationCommand"
+                    icon: "➕"
+                    
+              - component: "DataGrid"
+                name: "SpecificationsGrid"
+                items_source: "{Binding Contract.Specifications}"
+                can_add: true
+                can_delete: true
+                columns:
+                  - header: "Актив"
+                    binding: "Asset.Name"
+                    width: "250"
+                    template: "AssetWithCategoryTemplate"
+                    
+                  - header: "Кол-во"
+                    binding: "Quantity"
+                    width: "80"
+                    cell_template: "NumericUpDownCell"
+                    min: 1
+                    
+                  - header: "Период"
+                    binding: "PeriodType"
+                    width: "100"
+                    
+                  - header: "Цена/ед."
+                    binding: "UnitPrice"
+                    width: "100"
+                    string_format: "{0:C0}"
+                    cell_template: "CurrencyEditableCell"
+                    
+                  - header: "Скидка"
+                    binding: "DiscountPercent"
+                    width: "80"
+                    string_format: "{0}%"
+                    cell_template: "PercentEditableCell"
+                    
+                  - header: "Сумма"
+                    binding: "TotalPrice"
+                    width: "100"
+                    string_format: "{0:C0}"
+                    is_readonly: true
+                    horizontal_alignment: "Right"
+                    
+                  - header: ""
+                    width: "40"
+                    cell_template: "DeleteButtonCell"
+                    command: "RemoveSpecificationCommand"
+                    
+              - component: "SummaryPanel"
+                location: "Bottom"
+                items:
+                  - label: "Итого позиций:"
+                    value: "{Binding Specifications.Count}"
+                  - label: "Общая сумма:"
+                    value: "{Binding Contract.TotalAmount:C0}"
+                    style: "Emphasized"
+                    
+          - header: "💰 График платежей"
+            content:
+              - component: "FormGroup"
+                fields:
+                  - name: "PaymentScheduleType"
+                    type: "ComboBox"
+                    binding: "Contract.PaymentScheduleType"
+                    items:
+                      - value: "OneTime"
+                        label: "Единовременно"
+                      - value: "Monthly"
+                        label: "Ежемесячно равными долями"
+                      - value: "Custom"
+                        label: "Индивидуальный график"
+                    is_enabled: "{Binding IsDraft}"
+                    
+                  - name: "GenerateButton"
+                    type: "Button"
+                    label: "🔄 Сгенерировать график"
+                    command: "GeneratePaymentScheduleCommand"
+                    visible: "{Binding IsDraft AND ScheduleNotGenerated}"
+                    
+              - component: "DataGrid"
+                name: "PaymentsGrid"
+                items_source: "{Binding PaymentSchedule}"
+                can_add: "{Binding IsCustomSchedule}"
+                can_delete: "{Binding IsCustomSchedule AND item.IsPaid == false}"
+                columns:
+                  - header: "№"
+                    binding: "PaymentNumber"
+                    width: "50"
+                    
+                  - header: "Назначение"
+                    binding: "Description"
+                    width: "150"
+                    editable: "{Binding IsCustomSchedule}"
+                    
+                  - header: "Дата"
+                    binding: "DueDate"
+                    width: "100"
+                    cell_template: "DatePickerCell"
+                    editable: "{Binding IsCustomSchedule}"
+                    
+                  - header: "Плановая сумма"
+                    binding: "Amount"
+                    width: "120"
+                    string_format: "{0:C0}"
+                    
+                  - header: "Оплачено"
+                    binding: "IsPaid"
+                    width: "80"
+                    cell_template: "CheckBoxCell"
+                    editable: true
+                    
+                  - header: "Факт. дата"
+                    binding: "PaidDate"
+                    width: "100"
+                    visible: "{Binding IsPaid}"
+                    
+                  - header: "Факт. сумма"
+                    binding: "PaidAmount"
+                    width: "120"
+                    string_format: "{0:C0}"
+                    visible: "{Binding IsPaid}"
+                    
+                  - header: "Статус"
+                    binding: "PaymentStatus" # Calculated: OnTime/Late/Overdue
+                    width: "100"
+                    template: "PaymentStatusBadge"
+                    
+              - component: "PaymentSummary"
+                location: "Bottom"
+                items:
+                  - label: "Всего платежей:"
+                    value: "{Binding PaymentSchedule.Count}"
+                  - label: "Оплачено:"
+                    value: "{Binding PaidAmount:C0} / {Binding TotalAmount:C0}"
+                    value_format: "{0} ({1:P1})"
+                  - ProgressBar:
+                      value: "{Binding PaidPercent}"
+                      maximum: 100
+                      style: "Success"
+                      
+          - header: "🖨️ Документы"
+            content:
+              - component: "DocumentPreview"
+                width: "600"
+                height: "500"
+                source: "{Binding GeneratedDocumentHtml}"
+                zoom: 0.8
+                
+              - component: "DocumentActions"
+                location: "Right"
+                buttons:
+                  - label: "🔄 Обновить предпросмотр"
+                    command: "RegenerateDocumentCommand"
+                    
+                  - label: "📄 Договор"
+                    command: "GenerateContractDocumentCommand"
+                    
+                  - label: "📋 Акт приёма-передачи"
+                    command: "GenerateHandoverActCommand"
+                    enabled: "{Binding Contract.Status == 'Signed'}"
+                    
+                  - label: "↩️ Акт возврата"
+                    command: "GenerateReturnActCommand"
+                    enabled: "{Binding CanGenerateReturnAct}"
+                    
+                  - separator
+                    
+                  - label: "💾 Сохранить как PDF"
+                    command: "SaveAsPdfCommand"
+                    icon: "📥"
+                    
+                  - label: "🖨️ Печать"
+                    command: "PrintCommand"
+                    shortcut: "Ctrl+P"
+                    
+                  - label: "📧 Отправить по email"
+                    command: "SendByEmailCommand"
+                    enabled: "{Binding Counterparty.Email != null}"
+                    
+      - component: "DialogButtons"
+        location: "BottomRight"
+        buttons:
+          - label: "💾 Сохранить черновик"
+            command: "SaveDraftCommand"
+            visible: "{Binding IsDraft}"
+            
+          - label: "✅ Подписать договор"
+            command: "SignContractCommand"
+            style: "SuccessButton"
+            visible: "{Binding CanSign}"
+            confirmation: "После подписания основные поля станут недоступны для редактирования. Продолжить?"
+            
+          - label: "❌ Отмена"
+            command: "CancelCommand"
+            is_cancel: true
+            
+    viewmodel_logic:
+      # Валидация при сохранении
+      ValidateBeforeSave:
+        rules:
+          - field: "ContractNumber"
+            required: true
+            unique: true
+          - field: "CounterpartyId"
+            required: true
+            message: "Выберите контрагента"
+          - field: "Specifications"
+            required: "Must have at least 1 item"
+            message: "Добавьте хотя бы одну позицию в спецификацию"
+          - field: "PaymentSchedule"
+            required_if: "Contract.Status == 'Signed'"
+            rule: "SUM(Amount) must equal Contract.TotalAmount"
+            
+      # Авто-расчёты
+      AutoCalculations:
+        - trigger: "Specification changed"
+          actions:
+            - "Recalculate Specification.TotalPrice"
+            - "Recalculate Contract.TotalAmount = SUM(Specifications.TotalPrice)"
+            - "If PaymentScheduleType != Custom: Regenerate payment schedule"
+            
+        - trigger: "Contract.TotalAmount changed"
+          actions:
+            - "If PaymentSchedule generated: Show warning about mismatch"
+            - "Offer to regenerate schedule"
+
+
+# =============================================================================
+# ОТЧЁТЫ И АНАЛИТИКА
+# =============================================================================
+
+reports:
+
+  # ---------------------------
+  # Реестр договоров
+  # ---------------------------
+  ContractRegister:
+    name: "Реестр действующих договоров"
+    description: "Полный список договоров с фильтрацией и детализацией"
+    
+    parameters:
+      - name: "DateFrom"
+        type: "date"
+        required: false
+        default: "First day of current year"
+        
+      - name: "DateTo"
+        type: "date"
+        required: false
+        default: "Today"
+        
+      - name: "Status"
+        type: "multi-select"
+        options: ["Signed", "Active", "Suspended", "Completed"]
+        default: ["Active"]
+        
+      - name: "GroupBy"
+        type: "select"
+        options: ["None", "Counterparty", "AssetType", "Manager"]
+        default: "None"
+        
+    columns:
+      - "ContractNumber"
+      - "Counterparty.Name"
+      - "Counterparty.Inn"
+      - "Type"
+      - "Status"
+      - "StartDate"
+      - "EndDate"
+      - "TotalAmount"
+      - "PaidAmount"
+      - "Balance" # TotalAmount - PaidAmount
+      - "ManagerName"
+      
+    aggregations:
+      - function: "COUNT"
+        label: "Всего договоров"
+      - function: "SUM(TotalAmount)"
+        label: "Общая сумма"
+      - function: "SUM(PaidAmount)"
+        label: "Оплачено"
+      - function: "SUM(Balance)"
+        label: "Дебиторская задолженность"
+        
+    export_formats: ["Excel", "PDF", "CSV"]
+    
+  # ---------------------------
+  # Загрузка техники
+  # ---------------------------
+  AssetUtilization:
+    name: "Загрузка и доходность активов"
+    description: "Анализ использования техники за период"
+    
+    parameters:
+      - name: "Period"
+        type: "select"
+        options: ["Month", "Quarter", "Year", "Custom"]
+        default: "Month"
+        
+      - name: "AssetGroup"
+        type: "multi-select"
+        options: ["Vehicle", "Equipment"]
+        default: ["Vehicle", "Equipment"]
+        
+      - name: "Subcategory"
+        type: "multi-select"
+        dependent_on: "AssetGroup"
+        
+    metrics:
+      - name: "UtilizationRate"
+        formula: "DaysRented / DaysInPeriod * 100"
+        format: "percent"
+        
+      - name: "Revenue"
+        formula: "SUM(Specifications.TotalPrice)"
+        format: "currency"
+        
+      - name: "AvgDailyRate"
+        formula: "Revenue / DaysRented"
+        format: "currency"
+        
+      - name: "MaintenanceCosts"
+        formula: "SUM(MaintenanceRecords.Cost)"
+        format: "currency"
+        note: "Если ведётся учёт ТО"
+        
+      - name: "Profitability"
+        formula: "(Revenue - MaintenanceCosts) / Revenue * 100"
+        format: "percent"
+        
+    visualization:
+      - type: "BarChart"
+        title: "Загрузка по категориям"
+        x_axis: "Subcategory"
+        y_axis: "UtilizationRate"
+        
+      - type: "PieChart"
+        title: "Структура выручки"
+        value: "Revenue"
+        category: "Asset.Name"
+        
+      - type: "DataGrid"
+        title: "Детализация по активам"
+        columns: ["Asset", "DaysRented", "UtilizationRate", "Revenue", "Profitability"]
+        sortable: true
+        exportable: true
+        
+    alerts:
+      - condition: "UtilizationRate < 30%"
+        level: "warning"
+        message: "Низкая загрузка: {Asset.Name}"
+        
+      - condition: "Condition == 'NeedsRepair' AND IsAvailable == true"
+        level: "error"
+        message: "Актив требует ремонта, но доступен для аренды"
+
+
+  # ---------------------------
+  # Дебиторская задолженность
+  # ---------------------------
+  AccountsReceivable:
+    name: "Анализ дебиторской задолженности"
+    description: "Просроченные и предстоящие платежи"
+    
+    aging_buckets:
+      - name: "Current"
+        condition: "DueDate >= Today"
+        color: "green"
+        
+      - name: "1-7 days"
+        condition: "DueDate BETWEEN Today-7 AND Today-1"
+        color: "yellow"
+        
+      - name: "8-30 days"
+        condition: "DueDate BETWEEN Today-30 AND Today-8"
+        color: "orange"
+        
+      - name: "30+ days"
+        condition: "DueDate < Today-30"
+        color: "red"
+        
+    columns:
+      - "ContractNumber"
+      - "Counterparty.Name"
+      - "Payment.Description"
+      - "DueDate"
+      - "Amount"
+      - "DaysOverdue" # DATEDIFF(day, DueDate, Today)
+      - "AgingBucket"
+      - "ContactPerson"
+      - "LastContactDate"
+      
+    actions:
+      - name: "SendReminder"
+        label: "Отправить напоминание"
+        command: "SendPaymentReminderCommand"
+        template: "PaymentReminderEmail"
+        
+      - name: "LogContact"
+        label: "Зафиксировать контакт"
+        opens: "Modal: ContactLogEntry"
+        
+    summary:
+      - label: "Всего к оплате"
+        value: "SUM(Amount WHERE IsPaid=false)"
+      - label: "Просрочено"
+        value: "SUM(Amount WHERE DueDate < Today AND IsPaid=false)"
+      - label: "Крупнейшие должники"
+        value: "TOP 5 Counterparties by SUM(OverdueAmount)"
+
+
+# =============================================================================
+# ВАЛИДАЦИЯ И БИЗНЕС-ПРАВИЛА
+# =============================================================================
+
+validation_rules:
+
+  global:
+    - rule: "NoFutureDates"
+      description: "Запрет на указание будущих дат для исторических событий"
+      applies_to: ["SignedDate", "HandoverAct.Date"]
+      exception: "Contract.EndDate can be future"
+      
+    - rule: "CurrencyConsistency"
+      description: "Все суммы в договоре в одной валюте"
+      check: "All Specifications.UnitPrice AND Contract.TotalAmount use same Currency"
+      
+    - rule: "SoftDelete"
+      description: "Физическое удаление запрещено, только мягкое"
+      implementation: "Set IsActive=false or DeletedAt=NOW()"
+      
+  contract_specific:
+    - rule: "NoOverlappingRentals"
+      description: "Актив не может быть в двух активных договорах одновременно"
+      sql_check: |
+        IF EXISTS (
+          SELECT 1 FROM ContractSpecifications cs
+          JOIN Contracts c ON cs.ContractId = c.Id
+          WHERE cs.AssetId = @NewAssetId
+          AND c.Status IN ('Active', 'Signed')
+          AND c.Id != @CurrentContractId
+          AND (
+            (@NewStartDate < ISNULL(c.EndDate, '9999-12-31'))
+            AND (@NewEndDate > c.StartDate)
+          )
+        )
+        THROW 50001, 'Актив уже забронирован на указанный период', 1;
+        
+    - rule: "MinimumContractDuration"
+      description: "Минимальная продолжительность аренды"
+      condition: "DATEDIFF(day, StartDate, ISNULL(EndDate, StartDate)) >= 1"
+      exception: "Hourly rentals allowed for PeriodType='Hour'"
+      
+    - rule: "LeasingRequiresDownPayment"
+      description: "Лизинг требует первоначального взноса"
+      condition: "IF Type='Leasing': PaymentSchedule[0].Amount >= TotalAmount * 0.1"
+      
+  asset_specific:
+    - rule: "MaintenanceBeforeRental"
+      description: "Нельзя сдать актив, если просрочено ТО"
+      condition: |
+        IF Asset.NextMaintenanceDate < Today 
+        AND Asset.Condition != 'NeedsRepair'
+        THEN Asset.IsAvailable = false
+      auto_action: "Generate maintenance task"
+      
+    - rule: "CompatibleAttachments"
+      description: "Навесное оборудование совместимо только с указанными ТС"
+      check: "IF Asset.Group='Equipment' AND Subcategory='Attachments': 
+              Specification.Asset must be in Asset.CompatibleAssets"
+
+
+# =============================================================================
+# БЕЗОПАСНОСТЬ И ПРАВА ДОСТУПА
+# =============================================================================
+
+security:
+
+  authentication:
+    method: "Windows Authentication"
+    fallback: "SQL Server Authentication (для удалённых пользователей)"
+    password_policy:
+      min_length: 8
+      require_complexity: true
+      max_age_days: 90
+      history_count: 5
+      
+  roles:
+    Admin:
+      description: "Полный доступ ко всем функциям"
+      permissions:
+        - "ManageUsers"
+        - "ManageSettings"
+        - "ViewAuditLog"
+        - "BackupRestore"
+        - "All CRUD operations"
+        
+    Manager:
+      description: "Работа с договорами и активами"
+      permissions:
+        - "CRUD: Contracts, Specifications, Counterparties, Assets"
+        - "GenerateDocuments"
+        - "ViewReports"
+        - "ChangeContractStatus: Draft→Signed→Active→Completed"
+      restrictions:
+        - "Cannot delete records, only soft-delete"
+        - "Cannot modify signed contracts without approval"
+        
+    Accountant:
+      description: "Финансовый учёт и отчётность"
+      permissions:
+        - "Read: All entities"
+        - "Update: PaymentSchedule.IsPaid, PaidDate, PaidAmount"
+        - "Generate: Financial reports, Excel exports"
+        - "View: AuditLog (financial operations only)"
+      restrictions:
+        - "Cannot modify contract terms"
+        - "Cannot change asset availability"
+        
+    ReadOnly:
+      description: "Только просмотр для аудиторов"
+      permissions:
+        - "Read: Contracts, Assets (no personal data)"
+        - "Generate: Read-only reports"
+      restrictions:
+        - "No write operations"
+        - "No export with personal data"
+        
+  data_protection:
+    - field: "Counterparty.Inn"
+      encryption: "Always Encrypted"
+      accessible_by: ["Admin", "Manager"]
+      
+    - field: "Counterparty.Phone"
+      masking: "Show last 4 digits only for ReadOnly role"
+      
+    - feature: "AuditLog"
+      immutability: "Append-only, no delete/update"
+      retention: "7 years"
+      
+    - feature: "DatabaseBackup"
+      frequency: "Daily full + hourly transaction log"
+      encryption: "TDE (Transparent Data Encryption)"
+      offsite_copy: true
+
+
+# =============================================================================
+# КОНФИГУРАЦИЯ И НАСТРОЙКИ
+# =============================================================================
+
+configuration:
+
+  application:
+    settings:
+      - key: "App.DefaultCurrency"
+        type: "string"
+        default: "RUB"
+        editable: false
+        
+      - key: "App.WorkingHours"
+        type: "TimeRange"
+        default: "09:00-18:00"
+        description: "Для расчёта смен в аренде"
+        
+      - key: "App.DaysInMonth"
+        type: "int"
+        default: 30
+        description: "Для расчёта ежемесячных платежей"
+        
+      - key: "UI.Theme"
+        type: "enum"
+        options: ["Light", "Dark", "System"]
+        default: "System"
+        user_editable: true
+        
+      - key: "UI.DefaultPageSize"
+        type: "int"
+        options: [25, 50, 100]
+        default: 25
+        user_editable: true
+        
+  database:
+    connection_string_template: |
+      Server={ServerName};Database={DatabaseName};
+      Trusted_Connection=True;
+      MultipleActiveResultSets=true;
+      Encrypt=True;TrustServerCertificate=False;
+      
+    migration_strategy: "Code-First migrations with production data scripts"
+    
+    indexes_strategy:
+      - "All foreign keys: non-clustered index"
+      - "Frequently filtered columns: filtered indexes"
+      - "Full-text search on Name fields: ENABLED"
+      
+  integrations:
+    email:
+      enabled: false # опционально
+      smtp_settings:
+        host: "smtp.example.com"
+        port: 587
+        enable_ssl: true
+        credentials: "Windows Authentication or app password"
+        
+      templates:
+        ContractSigned:
+          subject: "Договор {ContractNumber} подписан"
+          body_template: "EmailTemplates/ContractSigned.html"
+          variables: ["ContractNumber", "Counterparty.Name", "TotalAmount", "DocumentUrl"]
+          
+        PaymentReminder:
+          subject: "Напоминание о платеже по договору {ContractNumber}"
+          body_template: "EmailTemplates/PaymentReminder.html"
+          variables: ["ContractNumber", "DueDate", "Amount", "DaysOverdue"]
+          
+    file_storage:
+      documents_path: "\\\\server\\leases\\documents\\{Year}\\{Month}\\"
+      photos_path: "C:\\LeasingAssets\\photos\\{AssetId}\\"
+      backup_path: "D:\\Backups\\LeasingDB\\"
+      retention_policy: "Documents: 10 years, Photos: 3 years after asset disposal"
+      
+  logging:
+    provider: "NLog"
+    targets:
+      - name: "File"
+        type: "RollingFile"
+        path: "Logs\\app_{date:yyyy-MM-dd}.log"
+        layout: "${longdate}|${level:uppercase=true}|${logger}|${message}|${exception:format=tostring}"
+        max_archive_days: 30
+        
+      - name: "Database"
+        type: "Database"
+        connection_string: "{AppConfig:ConnectionString}"
+        command_text: "INSERT INTO AuditLogs (...) VALUES (...)"
+        
+    rules:
+      - logger: "*"
+        min_level: "Info"
+        target: "File"
+      - logger: "LeasingSystem.Core.*"
+        min_level: "Debug"
+        target: "Database"
+      - logger: "LeasingSystem.Data.*"
+        min_level: "Warn"
+        target: "File,Database"
+
+
+# =============================================================================
+# ОБРАБОТКА ОШИБОК
+# =============================================================================
+
+error_handling:
+
+  global_strategy:
+    - level: "Validation"
+      handling: "Show inline errors, highlight fields, block submission"
+      user_message: "Исправьте ошибки в форме"
+      
+    - level: "Business"
+      handling: "Show modal dialog with explanation"
+      user_message: "Невозможно выполнить операцию: {Reason}"
+      log_level: "Warning"
+      
+    - level: "Technical"
+      handling: "Show generic error, log details, offer to send report"
+      user_message: "Произошла непредвиденная ошибка. Администратор уведомлён."
+      log_level: "Error"
+      auto_notify: true
+      
+  specific_errors:
+    - code: "ASSET_NOT_AVAILABLE"
+      http_analog: "409 Conflict"
+      user_message: "Выбранная техника недоступна на указанный период"
+      suggestion: "Посмотреть календарь занятости или выбрать аналог"
+      
+    - code: "CONTRACT_ALREADY_SIGNED"
+      http_analog: "403 Forbidden"
+      user_message: "Редактирование подписанного договора запрещено"
+      suggestion: "Создайте дополнительное соглашение"
+      
+    - code: "PAYMENT_AMOUNT_MISMATCH"
+      http_analog: "400 Bad Request"
+      user_message: "Сумма графика платежей не совпадает с суммой договора"
+      suggestion: "Используйте кнопку 'Пересчитать график'"
+      
+    - code: "DATABASE_CONNECTION_LOST"
+      http_analog: "503 Service Unavailable"
+      user_message: "Потеряно соединение с базой данных"
+      auto_retry: true
+      retry_policy: "Exponential backoff, max 3 attempts"
+      fallback: "Enable offline mode with local cache (read-only)"
+      
+  user_feedback:
+    success_notification:
+      style: "Toast"
+      position: "BottomRight"
+      duration: 3000
+      icon: "✅"
+      
+    warning_notification:
+      style: "Banner"
+      position: "Top"
+      dismissible: true
+      icon: "⚠️"
+      
+    error_notification:
+      style: "Modal"
+      position: "Center"
+      requires_acknowledgment: true
+      icon: "❌"
+      include_tech_details: false # show only to Admin role
+
+
+# =============================================================================
+# ТЕСТИРОВАНИЕ
+# =============================================================================
+
+testing:
+
+  unit_tests:
+    framework: "xUnit 2.4.2"
+    coverage_target: 70%
+    
+    critical_components:
+      - "ContractValidator"
+        test_cases:
+          - "Valid_contract_with_all_required_fields → passes"
+          - "Missing_Counterparty → fails with specific message"
+          - "EndDate before StartDate → fails"
+          - "Empty_specifications → fails"
+          - "Payment_sum_mismatch → fails"
+          
+      - "PaymentScheduleGenerator"
+        test_cases:
+          - "OneTime_type → single_payment_equal_to_total"
+          - "Monthly_type → equal_payments_rounded_correctly"
+          - "Custom_type → no_auto_generation"
+          - "Leap_year_handling → correct_day_count"
+          
+      - "AssetAvailabilityChecker"
+        test_cases:
+          - "No_existing_contracts → available"
+          - "Overlapping_active_contract → not_available"
+          - "Adjacent_contracts → available"
+          - "Suspended_contract → available"
+          
+  integration_tests:
+    database:
+      strategy: "LocalDB or Docker SQL Server"
+      setup: "Apply migrations + seed test data"
+      teardown: "Drop and recreate database"
+      
+    test_scenarios:
+      - name: "Full_contract_lifecycle"
+        steps:
+          - "Create counterparty"
+          - "Add asset"
+          - "Create contract in Draft"
+          - "Add specifications"
+          - "Generate payment schedule"
+          - "Sign contract"
+          - "Mark first payment as paid"
+          - "Return asset"
+          - "Complete contract"
+        assertions:
+          - "Asset.IsAvailable returns to true"
+          - "Contract.Status = Completed"
+          - "All audit logs created"
+          - "No orphaned records"
+          
+      - name: "Concurrent_access"
+        description: "Two users editing same contract"
+        strategy: "Optimistic concurrency with RowVersion"
+        expected: "Second save fails with concurrency exception"
+        
+  ui_tests:
+    framework: "FlaUI (native WPF automation)"
+    
+    critical_flows:
+      - "Login → Create contract → Save draft → Verify in list"
+      - "Filter contracts → Select → Edit → Change status → Verify"
+      - "Generate report → Export to Excel → Verify file content"
+      
+  performance_tests:
+    scenarios:
+      - name: "Load_contract_list"
+        dataset: "10,000 contracts"
+        target: "< 2 seconds initial load, < 500ms subsequent"
+        
+      - name: "Search_assets"
+        dataset: "5,000 assets"
+        query: "Partial name match"
+        target: "< 300ms"
+        
+      - name: "Generate_large_report"
+        dataset: "1 year of data"
+        target: "< 10 seconds"
+        
+    monitoring:
+      - "SQL query execution plans"
+      - "Memory usage during bulk operations"
+      - "UI thread blocking detection"
+
+
+# =============================================================================
+# РАЗВЁРТЫВАНИЕ И ЭКСПЛУАТАЦИЯ
+# =============================================================================
+
+deployment:
+
+  requirements:
+    client:
+      os: "Windows 10/11 or Windows Server 2019+"
+      framework: ".NET Framework 4.7.2 Runtime"
+      ram: "4 GB minimum, 8 GB recommended"
+      disk: "500 MB for application + space for documents"
+      
+    server:
+      sql_server: "SQL Server 2019 Standard or higher"
+      ram: "8 GB minimum"
+      storage: "SSD recommended, RAID 1 for data files"
+      
+  installation_steps:
+    - step: 1
+      action: "Install .NET Framework 4.7.2 (if not present)"
+      
+    - step: 2
+      action: "Create SQL Server database"
+      script: "Scripts/01_CreateDatabase.sql"
+      
+    - step: 3
+      action: "Apply migrations"
+      command: "Update-Database -ConfigurationTypeName Migrations.Configuration"
+      
+    - step: 4
+      action: "Create application user in SQL Server"
+      script: "Scripts/02_CreateAppUser.sql"
+      
+    - step: 5
+      action: "Configure connection string"
+      file: "App.config"
+      note: "Use Windows Authentication when possible"
+      
+    - step: 6
+      action: "Deploy application files"
+      method: "ClickOnce or manual copy to Program Files"
+      
+    - step: 7
+      action: "Create desktop shortcut"
+      target: "LeasingSystem.exe"
+      
+    - step: 8
+      action: "First run: create admin user"
+      ui: "InitialSetupWizard"
+      
+  backup_strategy:
+    database:
+      full_backup: "Daily at 02:00"
+      log_backup: "Every hour"
+      retention: "30 days on-site, 1 year off-site"
+      verification: "Weekly restore test to sandbox"
+      
+    files:
+      documents: "Real-time replication to backup server"
+      photos: "Daily incremental backup"
+      
+  monitoring:
+    health_checks:
+      - endpoint: "Database connection"
+        frequency: "Every 5 minutes"
+        alert_if: "Failed 3 consecutive times"
+        
+      - endpoint: "Disk space"
+        threshold: "< 10% free"
+        alert: "Email to admin"
+        
+      - endpoint: "Error rate"
+        threshold: "> 5 errors/hour"
+        alert: "Teams/Slack notification"
+        
+    logs_review:
+      frequency: "Daily automated scan for Error level"
+      weekly_manual: "Review Warning level patterns"
+
+
+# =============================================================================
+# ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ (ROADMAP)
+# =============================================================================
+
+future_enhancements:
+
+  v1.1:
+    - feature: "Mobile companion app"
+      description: "Просмотр договоров и активов с телефона"
+      platform: "Xamarin.Forms"
+      
+    - feature: "QR-code scanning"
+      description: "Сканирование инвентарных бирок для быстрого поиска"
+      
+    - feature: "Telegram notifications"
+      description: "Уведомления о просроченных платежах и возврате техники"
+      
+  v1.2:
+    - feature: "API for external integrations"
+      description: "REST API для обмена данными с 1С и сайтом"
+      authentication: "JWT tokens"
+      
+    - feature: "Electronic signature"
+      description: "Подписание договоров через КЭП"
+      provider: "КриптоПро или аналог"
+      
+  v2.0:
+    - feature: "Cloud migration"
+      description: "Перенос на Azure SQL + WPF ClickOnce auto-update"
+      
+    - feature: "AI-powered recommendations"
+      description: "Предложения по оптимизации ставок и загрузки"
+      
+    - feature: "Multi-tenant support"
+      description: "Возможность обслуживания нескольких ИП в одной системе"
+
+
+# =============================================================================
+# ПРИЛОЖЕНИЯ
+# =============================================================================
+
+appendices:
+
+  A_Glossary:
+    terms:
+      Актив: "Единица техники или оборудования в системе"
+      Контрагент: "Юрлицо, ИП или физлицо — сторона договора"
+      Спецификация: "Список конкретных активов в договоре с параметрами аренды"
+      График платежей: "Расписание и суммы платежей по договору"
+      Мягкое удаление: "Флаговая деактивация вместо физического удаления записи"
+      
+  B_Enum_Values:
+    ContractType:
+      Rental: "Краткосрочная аренда (часы/дни/недели)"
+      Leasing: "Долгосрочная аренда с правом выкупа (месяцы/годы)"
+      
+    ContractStatus:
+      Draft: "Черновик, можно свободно редактировать"
+      Signed: "Подписан, основные поля заблокированы"
+      Active: "Действует, идёт период аренды"
+      Suspended: "Приостановлен по согласованию сторон"
+      Completed: "Успешно завершён, актив возвращён"
+      Terminated: "Расторгнут досрочно"
+      
+    AssetCondition:
+      New: "Новый, без эксплуатации"
+      Good: "Исправен, следы эксплуатации в пределах нормы"
+      Satisfactory: "Требует внимания, но пригоден для работы"
+      NeedsRepair: "Необходимо ТО или ремонт перед сдачей"
+      OutOfOrder: "Неисправен, выведен из эксплуатации"
+      
+  C_Sample_Data:
+    Counterparty:
+      Name: "ООО 'СтройИнвест'"
+      Inn: "7701234567"
+      Kpp: "770101001"
+      ContactPerson: "Иванов Иван Иванович"
+      Phone: "+7 (495) 123-45-67"
+      
+    Asset:
+      InventoryNumber: "EX-001234"
+      Name: "Экскаватор-погрузчик JCB 3CX Super"
+      Group: "Vehicle"
+      Subcategory: "ConstructionRoad"
+      HourlyRate: 2500.00
+      DailyRate: 18000.00
+      
+    Contract:
+      ContractNumber: "AR-2024-001"
+      Type: "Rental"
+      TotalAmount: 180000.00
+      Period: "10 дней"
+      
+  D_Keyboard_Shortcuts:
+    Global:
+      "Ctrl+N": "Новый договор"
+      "Ctrl+S": "Сохранить"
+      "Ctrl+F": "Поиск в списке"
+      "F5": "Обновить данные"
+      "Ctrl+P": "Печать текущего документа"
+      "Esc": "Закрыть модальное окно / отменить действие"
+      
+    ContractsGrid:
+      "Enter": "Открыть выбранный договор"
+      "Ctrl+E": "Редактировать"
+      "Delete": "Удалить (с подтверждением)"
+      "Ctrl+X": "Экспорт в Excel"

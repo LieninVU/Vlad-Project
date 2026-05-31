@@ -1,0 +1,340 @@
+<UserControl x:Class="ForVlad.Views.ContractsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ForVlad.Models"
+             xmlns:converters="clr-namespace:ForVlad.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="500" d:DesignWidth="800">
+    
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="MinWidth" Value="80"/>
+        </Style>
+        
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <!-- Конвертеры -->
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
+        <converters:ContractTypeToColorConverter x:Key="ContractTypeToColorConverter" />
+        <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
+        <converters:IntToVisibilityInverseConverter x:Key="IntToVisibilityInverseConverter" />
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Панель инструментов -->
+        <Border Grid.Row="0" Background="#F8F9FA" Padding="10" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="+ Новый договор" 
+                        Background="#2ECC71" 
+                        Foreground="White"
+                        FontWeight="Bold"
+                        Command="{Binding AddContractCommand}"/>
+                
+                <Button Content="✏️ Редактировать" 
+                        Background="#3498DB" 
+                        Foreground="White"
+                        Command="{Binding EditContractCommand}"/>
+                
+                <Button Content="🗑️ Удалить" 
+                        Background="#E74C3C" 
+                        Foreground="White"
+                        Command="{Binding DeleteContractCommand}"/>
+                
+                <Button Content="🔄 Обновить" 
+                        Background="#95A5A6" 
+                        Foreground="White"
+                        Command="{Binding RefreshCommand}"
+                        Margin="20,0,0,0"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Панель фильтрации -->
+        <Border Grid.Row="1" Background="#ECF0F1" Padding="10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" 
+                           Text="Поиск:" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,10,0"/>
+                
+                <TextBox Grid.Column="1" 
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Поиск по номеру договора или примечаниям"
+                         MinWidth="200"/>
+                
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="20,0,0,0">
+                    <TextBlock Text="Статус:" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,10,0"/>
+                    
+                    <ComboBox ItemsSource="{Binding StatusFilterOptions}"
+                              SelectedItem="{Binding FilterStatus}"
+                              Width="150"
+                              ToolTip="Пусто = все статусы"/>
+                    
+                    <Button Content="✕" 
+                            ToolTip="Очистить фильтр"
+                            Width="25"
+                            Margin="5,0,0,0"
+                            Command="{Binding ClearStatusFilterCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Список договоров -->
+        <Grid Grid.Row="2">
+            <DataGrid ItemsSource="{Binding FilteredContracts}"
+                      SelectedItem="{Binding SelectedContract}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      GridLinesVisibility="None"
+                      RowBackground="#FFFFFF"
+                      AlternatingRowBackground="#F8F9FA"
+                      HeadersVisibility="Column"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeRows="False"
+                      CanUserSortColumns="True"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      MinHeight="200"
+                      MinWidth="950"
+                      Visibility="{Binding HasContracts, Converter={StaticResource IntToVisibilityConverter}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Номер" Binding="{Binding ContractNumber}" Width="110" MinWidth="100"/>
+                    <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyDisplayName}" Width="180" MinWidth="140"/>
+                    <DataGridTemplateColumn Header="Тип" Width="85" MinWidth="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ContractType}" FontWeight="SemiBold"
+                                           Foreground="{Binding ContractType, Converter={StaticResource ContractTypeToColorConverter}}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Статус" Width="100" MinWidth="90">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
+                                        CornerRadius="3" Padding="4,2" HorizontalAlignment="Left">
+                                    <TextBlock Text="{Binding Status}" Foreground="White" FontWeight="SemiBold" FontSize="11"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Период" Binding="{Binding PeriodDisplay}" Width="170" MinWidth="150"/>
+                    <DataGridTextColumn Header="Сумма с НДС" Binding="{Binding TotalWithVAT, StringFormat=N2}" Width="105" MinWidth="95"/>
+                    <DataGridTextColumn Header="Платеж/мес" Binding="{Binding MonthlyPayment, StringFormat=N2}" Width="95" MinWidth="90"/>
+                    <DataGridTextColumn Header="Примечания" Binding="{Binding Notes}" Width="150" MinWidth="120"/>
+                    <DataGridTemplateColumn Header="Действия" Width="75" MinWidth="75">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="✏️" ToolTip="Редактировать" Padding="4,2" FontSize="10"
+                                        Command="{Binding DataContext.EditContractFromRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="BorderBrush" Value="#ECF0F1"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#D6EAF8"/>
+                                <Setter Property="BorderBrush" Value="#3498DB"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F2F4F4"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+            </DataGrid>
+            
+            <Border Background="#F8F9FA"
+                    Visibility="{Binding HasContracts, Converter={StaticResource IntToVisibilityInverseConverter}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="📋" FontSize="48" Foreground="#BDC3C7" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Договоры не найдены" FontSize="16" Foreground="#7F8C8D" Margin="0,10,0,0" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Измените фильтры или создайте новый договор" FontSize="12" Foreground="#95A5A6" Margin="0,5,0,0" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+        
+        <!-- Диалог создания/редактирования -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#80000000"
+                Visibility="{Binding IsDialogOpen, Converter={StaticResource IntToVisibilityConverter}}">
+            <Border Background="White" 
+                    Width="600" 
+                    Height="Auto"
+                    CornerRadius="5"
+                    Padding="20">
+                <StackPanel>
+                    <TextBlock Text="{Binding DialogTitle}" 
+                               FontSize="18" 
+                               FontWeight="Bold" 
+                               Margin="0,0,0,20"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Номер договора -->
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Номер договора:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" 
+                                 Text="{Binding EditingContract.ContractNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="5"/>
+                        
+                        <!-- Тип договора -->
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Тип договора:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1"
+                                  ItemsSource="{Binding ContractTypes}"
+                                  SelectedItem="{Binding EditingContract.ContractType}"
+                                  Margin="5"/>
+                        
+                        <!-- Статус -->
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Статус:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1"
+                                  ItemsSource="{Binding Statuses}"
+                                  SelectedItem="{Binding EditingContract.Status}"
+                                  Margin="5"/>
+                        
+                        <!-- Контрагент -->
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Контрагент:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="3" Grid.Column="1"
+                                  ItemsSource="{Binding Counterparties}"
+                                  SelectedValue="{Binding EditingContract.CounterpartyId}"
+                                  SelectedValuePath="Id"
+                                  DisplayMemberPath="Name"
+                                  Margin="5"/>
+                        
+                        <!-- Дата подписания -->
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Дата подписания:" VerticalAlignment="Center"/>
+                        <DatePicker Grid.Row="4" Grid.Column="1"
+                                    SelectedDate="{Binding EditingContract.SignedDate}"
+                                    Margin="5"/>
+                        
+                        <!-- Дата начала -->
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Дата начала:" VerticalAlignment="Center"/>
+                        <DatePicker Grid.Row="5" Grid.Column="1"
+                                    SelectedDate="{Binding EditingContract.StartDate}"
+                                    Margin="5"/>
+                        
+                        <!-- Дата окончания -->
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Дата окончания:" VerticalAlignment="Center"/>
+                        <DatePicker Grid.Row="6" Grid.Column="1"
+                                    SelectedDate="{Binding EditingContract.EndDate}"
+                                    Margin="5"/>
+                        
+                        <!-- Продолжительность (автоматически) -->
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Продолжительность:" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="7" Grid.Column="1" 
+                                    Text="{Binding DurationDisplay}"
+                                    FontWeight="Bold"
+                                    Foreground="#2C3E50"
+                                    Margin="8"
+                                    VerticalAlignment="Center"/>
+                        
+                        <!-- Сумма -->
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Сумма без НДС:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="8" Grid.Column="1" 
+                                 Text="{Binding EditingContract.TotalAmount, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="5"/>
+                        
+                        <!-- НДС -->
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Сумма НДС:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="9" Grid.Column="1" 
+                                 Text="{Binding EditingContract.VATAmount, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="5"/>
+                        
+                        <!-- Примечания -->
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Примечания:" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                        <TextBox Grid.Row="10" Grid.Column="1" 
+                                 Text="{Binding EditingContract.Notes, UpdateSourceTrigger=PropertyChanged}"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 Height="60"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Margin="5"/>
+                    </Grid>
+                    
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                        <Button Content="Сохранить" 
+                                Background="#2ECC71" 
+                                Foreground="White"
+                                FontWeight="Bold"
+                                Width="100"
+                                Margin="0,0,10,0"
+                                Command="{Binding SaveContractCommand}"/>
+                        
+                        <Button Content="Отмена" 
+                                Background="#95A5A6" 
+                                Foreground="White"
+                                Width="100"
+                                Command="{Binding CancelCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

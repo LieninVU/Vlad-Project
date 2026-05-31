@@ -1,0 +1,114 @@
+<UserControl x:Class="ForVlad.Views.UtilizationReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ForVlad.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="500" d:DesignWidth="900">
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="MinWidth" Value="90"/>
+        </Style>
+        <converters:IntToVisibilityConverter x:Key="BoolVisConverter" />
+        <converters:IntToVisibilityInverseConverter x:Key="BoolVisInverseConverter" />
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <Border Grid.Row="0" Background="#F8F9FA" Padding="10" Margin="0,0,0,8">
+            <StackPanel>
+                <TextBlock Text="Загрузка и доходность активов"
+                           FontWeight="SemiBold" Foreground="#2C3E50" Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="🔄 Обновить" Background="#3498DB" Foreground="White" Command="{Binding RefreshCommand}"/>
+                    <Button Content="📤 Экспорт CSV" Background="#27AE60" Foreground="White" Command="{Binding ExportToCsvCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        
+        <Border Grid.Row="1" Background="#ECF0F1" Padding="10" Margin="0,0,0,8">
+            <StackPanel>
+                <WrapPanel Margin="0,0,0,8">
+                    <TextBlock Text="Период:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox ItemsSource="{Binding PeriodOptions}" SelectedItem="{Binding SelectedPeriod}" Width="120" Margin="0,0,16,0"/>
+                    <TextBlock Text="Категория:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox ItemsSource="{Binding AssetGroupFilters}" SelectedItem="{Binding SelectedAssetGroup}" Width="140"/>
+                </WrapPanel>
+                <StackPanel Orientation="Horizontal"
+                            Visibility="{Binding IsCustomPeriod, Converter={StaticResource BoolVisConverter}}">
+                    <TextBlock Text="С:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <DatePicker SelectedDate="{Binding CustomPeriodStart}" Width="120" Margin="0,0,12,0"/>
+                    <TextBlock Text="по:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <DatePicker SelectedDate="{Binding CustomPeriodEnd}" Width="120" Margin="0,0,12,0"/>
+                    <Button Content="Применить" Background="#3498DB" Foreground="White" Command="{Binding ApplyPeriodCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="280"/>
+            </Grid.ColumnDefinitions>
+            <Border Background="#F8F9FA" Padding="8,6" Grid.Column="0">
+                <WrapPanel>
+                    <TextBlock Text="{Binding Summary.TotalAssets, StringFormat=Активов: {0}}" Margin="0,0,16,0"/>
+                    <TextBlock Text="{Binding Summary.AverageUtilization, StringFormat=Средняя загрузка: {0:F1}%}" Margin="0,0,16,0"/>
+                    <TextBlock Text="{Binding Summary.TotalRevenue, StringFormat=Выручка: {0:N2} ₽}" Margin="0,0,16,0"/>
+                    <TextBlock Text="{Binding Summary.LowUtilizationCount, StringFormat=Низкая загрузка: {0}}" Foreground="#E67E22"/>
+                </WrapPanel>
+            </Border>
+            <Border Grid.Column="1" Background="#FFF8E1" BorderBrush="#F39C12" BorderThickness="1" CornerRadius="4" Padding="8" Margin="8,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="⚠ Предупреждения" FontWeight="Bold" Foreground="#D35400" Margin="0,0,0,4"/>
+                    <ItemsControl ItemsSource="{Binding Alerts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" Margin="0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Нет предупреждений" FontSize="11" Foreground="#95A5A6"
+                               Visibility="{Binding HasAlerts, Converter={StaticResource BoolVisInverseConverter}}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+        
+        <Grid Grid.Row="3">
+            <DataGrid ItemsSource="{Binding Rows}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="None"
+                      AlternatingRowBackground="#F8F9FA"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      MinWidth="900"
+                      Visibility="{Binding HasRows, Converter={StaticResource BoolVisConverter}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Инв. №" Binding="{Binding InventoryNumber}" Width="90" MinWidth="80"/>
+                    <DataGridTextColumn Header="Наименование" Binding="{Binding AssetName}" Width="180" MinWidth="150"/>
+                    <DataGridTextColumn Header="Группа" Binding="{Binding AssetGroup}" Width="90" MinWidth="80"/>
+                    <DataGridTextColumn Header="Дней аренды" Binding="{Binding DaysRented}" Width="90" MinWidth="80"/>
+                    <DataGridTextColumn Header="Загрузка %" Binding="{Binding UtilizationRate, StringFormat=F1}" Width="85" MinWidth="75"/>
+                    <DataGridTextColumn Header="Выручка" Binding="{Binding Revenue, StringFormat=N2}" Width="95" MinWidth="90"/>
+                    <DataGridTextColumn Header="Ставка/мес" Binding="{Binding MonthlyRate, StringFormat=N2}" Width="95" MinWidth="90"/>
+                    <DataGridTextColumn Header="Доступен" Binding="{Binding IsAvailable}" Width="75" MinWidth="70"/>
+                    <DataGridTextColumn Header="Примечание" Binding="{Binding AlertMessage}" Width="140" MinWidth="120"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <Border Background="#F8F9FA" Visibility="{Binding HasRows, Converter={StaticResource BoolVisInverseConverter}}">
+                <TextBlock Text="Нет данных за выбранный период" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="#7F8C8D" FontSize="14"/>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

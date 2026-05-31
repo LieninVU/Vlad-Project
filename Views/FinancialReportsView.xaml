@@ -1,0 +1,91 @@
+<UserControl x:Class="ForVlad.Views.FinancialReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ForVlad.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="500" d:DesignWidth="900">
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="MinWidth" Value="90"/>
+        </Style>
+        <converters:IntToVisibilityConverter x:Key="BoolVisConverter" />
+        <converters:IntToVisibilityInverseConverter x:Key="BoolVisInverseConverter" />
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <Border Grid.Row="0" Background="#F8F9FA" Padding="10" Margin="0,0,0,8">
+            <StackPanel>
+                <TextBlock Text="Финансовые отчёты — дебиторская задолженность и реестр платежей"
+                           FontWeight="SemiBold" Foreground="#2C3E50" Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="🔄 Обновить" Background="#3498DB" Foreground="White" Command="{Binding RefreshCommand}"/>
+                    <Button Content="✓ Отметить оплату" Background="#2ECC71" Foreground="White"
+                            Command="{Binding MarkPaidCommand}"/>
+                    <Button Content="📤 Экспорт CSV" Background="#27AE60" Foreground="White"
+                            Command="{Binding ExportToCsvCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        
+        <Border Grid.Row="1" Background="#ECF0F1" Padding="10" Margin="0,0,0,8">
+            <WrapPanel Orientation="Horizontal">
+                <TextBlock Text="Срок с:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <DatePicker SelectedDate="{Binding DueDateFrom}" Width="120" Margin="0,0,16,0"/>
+                <TextBlock Text="по:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <DatePicker SelectedDate="{Binding DueDateTo}" Width="120" Margin="0,0,16,0"/>
+                <CheckBox Content="Только неоплаченные" IsChecked="{Binding UnpaidOnly}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <Button Content="Применить" Background="#3498DB" Foreground="White" Command="{Binding ApplyFiltersCommand}"/>
+                <Button Content="Сбросить" Background="#95A5A6" Foreground="White" Command="{Binding ClearFiltersCommand}"/>
+            </WrapPanel>
+        </Border>
+        
+        <Border Grid.Row="2" Background="#F8F9FA" Padding="8,6" Margin="0,0,0,8">
+            <WrapPanel>
+                <TextBlock Text="{Binding Summary.PaymentCount, StringFormat=Платежей: {0}}" Margin="0,0,20,0"/>
+                <TextBlock Text="{Binding Summary.TotalDue, StringFormat=К оплате: {0:N2} ₽}" Margin="0,0,20,0"/>
+                <TextBlock Text="{Binding Summary.TotalOverdue, StringFormat=Просрочено: {0:N2} ₽}" Foreground="#E74C3C" Margin="0,0,20,0"/>
+                <TextBlock Text="{Binding Summary.TotalPaidInPeriod, StringFormat=Оплачено за период: {0:N2} ₽}" Foreground="#27AE60"/>
+            </WrapPanel>
+        </Border>
+        
+        <Grid Grid.Row="3">
+            <DataGrid ItemsSource="{Binding Payments}"
+                      SelectedItem="{Binding SelectedPayment}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      GridLinesVisibility="None"
+                      AlternatingRowBackground="#F8F9FA"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      MinWidth="900"
+                      Visibility="{Binding HasPayments, Converter={StaticResource BoolVisConverter}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Договор" Binding="{Binding ContractNumber}" Width="110" MinWidth="100"/>
+                    <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyName}" Width="160" MinWidth="140"/>
+                    <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90" MinWidth="85"/>
+                    <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat=N2}" Width="95" MinWidth="90"/>
+                    <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90" MinWidth="80"/>
+                    <DataGridTextColumn Header="Просрочка" Binding="{Binding DaysOverdue}" Width="80" MinWidth="70"/>
+                    <DataGridTextColumn Header="Категория" Binding="{Binding AgingBucket}" Width="90" MinWidth="80"/>
+                    <DataGridTextColumn Header="Оплачен" Binding="{Binding IsPaid}" Width="70" MinWidth="65"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <Border Background="#F8F9FA" Visibility="{Binding HasPayments, Converter={StaticResource BoolVisInverseConverter}}">
+                <TextBlock Text="Нет платежей по выбранным фильтрам" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="#7F8C8D" FontSize="14"/>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
