@@ -348,6 +348,22 @@ namespace ForVlad.ViewModels
                 return;
             }
             
+            // Валидация даты подписания
+            if (EditingContract.SignedDate > DateTime.Now)
+            {
+                MessageBox.Show("Дата подписания договора не может быть в будущем.", 
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            // Валидация даты начала
+            if (EditingContract.StartDate < EditingContract.SignedDate)
+            {
+                MessageBox.Show("Дата начала действия договора не может быть раньше даты подписания.", 
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
             // Валидация дат
             if (EditingContract.EndDate.HasValue)
             {

@@ -99,6 +99,34 @@ namespace ForVlad.Data
         
         private void InsertCounterparty(Counterparty counterparty)
         {
+            // REFACTOR: Валидация ограничений CHECK из БД
+            if (string.IsNullOrEmpty(counterparty.INN))
+            {
+                throw new InvalidOperationException(
+                    "ИНН должен быть указан. Укажите корректный ИНН контрагента.");
+            }
+            
+            if (counterparty.INN.Length < 10 || counterparty.INN.Length > 12)
+            {
+                throw new InvalidOperationException(
+                    "ИНН должен содержать от 10 до 12 символов.");
+            }
+            
+            if (!string.IsNullOrEmpty(counterparty.KPP) && counterparty.KPP.Length != 9)
+            {
+                throw new InvalidOperationException(
+                    "КПП должен содержать ровно 9 символов или быть пустым.");
+            }
+            
+            if (!string.IsNullOrEmpty(counterparty.Email))
+            {
+                if (!counterparty.Email.Contains("@") || !counterparty.Email.Contains("."))
+                {
+                    throw new InvalidOperationException(
+                        "Электронная почта должна содержать символы '@' и '.' или быть пустой.");
+                }
+            }
+            
             // В БД: Inn, Kpp (с маленькой буквы), IsActive, CreatedAt, UpdatedAt
             // В БД нет OGRN, убрали из INSERT
             string sql = @"
@@ -123,6 +151,34 @@ namespace ForVlad.Data
         
         private void UpdateCounterparty(Counterparty counterparty)
         {
+            // REFACTOR: Валидация ограничений CHECK из БД
+            if (string.IsNullOrEmpty(counterparty.INN))
+            {
+                throw new InvalidOperationException(
+                    "ИНН должен быть указан. Укажите корректный ИНН контрагента.");
+            }
+            
+            if (counterparty.INN.Length < 10 || counterparty.INN.Length > 12)
+            {
+                throw new InvalidOperationException(
+                    "ИНН должен содержать от 10 до 12 символов.");
+            }
+            
+            if (!string.IsNullOrEmpty(counterparty.KPP) && counterparty.KPP.Length != 9)
+            {
+                throw new InvalidOperationException(
+                    "КПП должен содержать ровно 9 символов или быть пустым.");
+            }
+            
+            if (!string.IsNullOrEmpty(counterparty.Email))
+            {
+                if (!counterparty.Email.Contains("@") || !counterparty.Email.Contains("."))
+                {
+                    throw new InvalidOperationException(
+                        "Электронная почта должна содержать символы '@' и '.' или быть пустой.");
+                }
+            }
+            
             string sql = @"
                 UPDATE Counterparties SET
                     Name = @Name,
@@ -300,6 +356,59 @@ namespace ForVlad.Data
         
         private void InsertAsset(Asset asset)
         {
+            // REFACTOR: Валидация ограничений CHECK из БД
+            if (string.IsNullOrEmpty(asset.InventoryNumber))
+            {
+                throw new InvalidOperationException(
+                    "Инвентарный номер должен быть указан. Укажите корректный инвентарный номер техники.");
+            }
+            
+            // Проверяем, что хотя бы одна ставка больше 0
+            if (asset.HourlyRate <= 0 && asset.DailyRate <= 0 && asset.MonthlyRentalRate <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Хотя бы одно из значений (HourlyRate, DailyRate или MonthlyRentalRate) должно быть больше 0.");
+            }
+            
+            // Проверяем HourlyRate
+            if (asset.HourlyRate < 0)
+            {
+                throw new InvalidOperationException(
+                    "Почасовая ставка должна быть больше 0 или не указана.");
+            }
+            
+            // Проверяем DailyRate
+            if (asset.DailyRate < 0)
+            {
+                throw new InvalidOperationException(
+                    "Дневная ставка должна быть больше 0 или не указана.");
+            }
+            
+            // Проверяем EnginePower
+            if (asset.EnginePower.HasValue && asset.EnginePower.Value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Мощность двигателя должна быть больше 0 или не указана.");
+            }
+            
+            // Проверяем Weight
+            if (asset.Weight.HasValue && asset.Weight.Value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Вес должен быть больше 0 или не указан.");
+            }
+            
+            // Проверяем год выпуска
+            if (asset.YearOfManufacture.HasValue)
+            {
+                int currentYear = DateTime.Now.Year;
+                if (asset.YearOfManufacture.Value < 1900 || asset.YearOfManufacture.Value > currentYear)
+                {
+                    throw new InvalidOperationException(
+                        string.Format("Год выпуска должен быть между 1900 и {0} годом.", currentYear));
+                }
+            }
+            
             // В БД: VehicleBrand, VehicleModel, VinNumber, ManufactureYear, HourlyRate, DailyRate
             // Пробуем получить MonthlyRentalRate из HourlyRate или DailyRate
             // Если не установлены, используем MonthlyRentalRate
@@ -336,6 +445,59 @@ namespace ForVlad.Data
         
         private void UpdateAsset(Asset asset)
         {
+            // REFACTOR: Валидация ограничений CHECK из БД
+            if (string.IsNullOrEmpty(asset.InventoryNumber))
+            {
+                throw new InvalidOperationException(
+                    "Инвентарный номер должен быть указан. Укажите корректный инвентарный номер техники.");
+            }
+            
+            // Проверяем, что хотя бы одна ставка больше 0
+            if (asset.HourlyRate <= 0 && asset.DailyRate <= 0 && asset.MonthlyRentalRate <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Хотя бы одно из значений (HourlyRate, DailyRate или MonthlyRentalRate) должно быть больше 0.");
+            }
+            
+            // Проверяем HourlyRate
+            if (asset.HourlyRate < 0)
+            {
+                throw new InvalidOperationException(
+                    "Почасовая ставка должна быть больше 0 или не указана.");
+            }
+            
+            // Проверяем DailyRate
+            if (asset.DailyRate < 0)
+            {
+                throw new InvalidOperationException(
+                    "Дневная ставка должна быть больше 0 или не указана.");
+            }
+            
+            // Проверяем EnginePower
+            if (asset.EnginePower.HasValue && asset.EnginePower.Value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Мощность двигателя должна быть больше 0 или не указана.");
+            }
+            
+            // Проверяем Weight
+            if (asset.Weight.HasValue && asset.Weight.Value <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Вес должен быть больше 0 или не указан.");
+            }
+            
+            // Проверяем год выпуска
+            if (asset.YearOfManufacture.HasValue)
+            {
+                int currentYear = DateTime.Now.Year;
+                if (asset.YearOfManufacture.Value < 1900 || asset.YearOfManufacture.Value > currentYear)
+                {
+                    throw new InvalidOperationException(
+                        string.Format("Год выпуска должен быть между 1900 и {0} годом.", currentYear));
+                }
+            }
+            
             decimal hourlyRate = asset.HourlyRate > 0 ? asset.HourlyRate : (asset.MonthlyRentalRate / 30 / 8);
             decimal dailyRate = asset.DailyRate > 0 ? asset.DailyRate : (asset.MonthlyRentalRate / 30);
             
@@ -549,11 +711,35 @@ namespace ForVlad.Data
             // В БД: ContractStatus (TINYINT), CreatedAt, UpdatedAt
             // Нет: DurationMonths, VATAmount, TotalWithVAT, AdvancePayment, MonthlyPayment, ActivationDate, CompletionDate, IsDeleted
             
-            // REFACTOR: Проверка ограничения CHECK из БД - TotalAmount должен быть положительным
+            // REFACTOR: Проверка ограничений CHECK из БД
+            if (string.IsNullOrEmpty(contract.ContractNumber))
+            {
+                throw new InvalidOperationException(
+                    "Номер договора должен быть указан. Укажите корректный номер договора.");
+            }
+            
             if (contract.TotalAmount <= 0)
             {
                 throw new InvalidOperationException(
                     "Сумма договора должна быть больше 0. Укажите корректную общую сумму договора.");
+            }
+            
+            if (contract.SignedDate > DateTime.Now)
+            {
+                throw new InvalidOperationException(
+                    "Дата подписания договора не может быть в будущем.");
+            }
+            
+            if (contract.StartDate < contract.SignedDate)
+            {
+                throw new InvalidOperationException(
+                    "Дата начала действия договора не может быть раньше даты подписания.");
+            }
+            
+            if (contract.EndDate.HasValue && contract.EndDate.Value <= contract.StartDate)
+            {
+                throw new InvalidOperationException(
+                    "Дата окончания договора должна быть позже даты начала.");
             }
             
             string sql = @"
@@ -580,11 +766,35 @@ namespace ForVlad.Data
         
         private void UpdateContract(Contract contract)
         {
-            // REFACTOR: Проверка ограничения CHECK из БД - TotalAmount должен быть положительным
+            // REFACTOR: Проверка ограничений CHECK из БД
+            if (string.IsNullOrEmpty(contract.ContractNumber))
+            {
+                throw new InvalidOperationException(
+                    "Номер договора должен быть указан. Укажите корректный номер договора.");
+            }
+            
             if (contract.TotalAmount <= 0)
             {
                 throw new InvalidOperationException(
                     "Сумма договора должна быть больше 0. Укажите корректную общую сумму договора.");
+            }
+            
+            if (contract.SignedDate > DateTime.Now)
+            {
+                throw new InvalidOperationException(
+                    "Дата подписания договора не может быть в будущем.");
+            }
+            
+            if (contract.StartDate < contract.SignedDate)
+            {
+                throw new InvalidOperationException(
+                    "Дата начала действия договора не может быть раньше даты подписания.");
+            }
+            
+            if (contract.EndDate.HasValue && contract.EndDate.Value <= contract.StartDate)
+            {
+                throw new InvalidOperationException(
+                    "Дата окончания договора должна быть позже даты начала.");
             }
             
             string sql = @"

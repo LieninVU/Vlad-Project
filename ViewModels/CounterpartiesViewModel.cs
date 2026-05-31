@@ -220,12 +220,38 @@ namespace ForVlad.ViewModels
                 return;
             }
             
-            EditingCounterparty.ModifiedDate = DateTime.Now;
-            _dataService.SaveCounterparty(EditingCounterparty);
-            CloseDialog();
-            LoadCounterparties();
+            // REFACTOR: UI валидация для полей с ограничениями CHECK в БД
+            if (!string.IsNullOrEmpty(EditingCounterparty.KPP) && EditingCounterparty.KPP.Length != 9)
+            {
+                MessageBox.Show("КПП должен содержать ровно 9 символов или быть пустым.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             
-            MessageBox.Show("Контрагент успешно сохранён", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!string.IsNullOrEmpty(EditingCounterparty.Email))
+            {
+                if (!EditingCounterparty.Email.Contains("@") || !EditingCounterparty.Email.Contains("."))
+                {
+                    MessageBox.Show("Электронная почта должна содержать символы '@' и '.' или быть пустой.",
+                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+            
+            try
+            {
+                EditingCounterparty.ModifiedDate = DateTime.Now;
+                _dataService.SaveCounterparty(EditingCounterparty);
+                CloseDialog();
+                LoadCounterparties();
+                
+                MessageBox.Show("Контрагент успешно сохранён", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // REFACTOR: Обработка валидационных ошибок из сервиса
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         
         private void DeleteCounterparty()

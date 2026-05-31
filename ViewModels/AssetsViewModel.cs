@@ -336,6 +336,53 @@ namespace ForVlad.ViewModels
                 return;
             }
             
+            // REFACTOR: UI валидация для полей с ограничениями CHECK в БД
+            if (EditingAsset.HourlyRate <= 0 && EditingAsset.DailyRate <= 0 && EditingAsset.MonthlyRentalRate <= 0)
+            {
+                MessageBox.Show("Хотя бы одно из значений (Почасовая ставка, Дневная ставка или Месячная аренда) должно быть больше 0.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (EditingAsset.HourlyRate < 0)
+            {
+                MessageBox.Show("Почасовая ставка должна быть больше 0 или равна 0.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (EditingAsset.DailyRate < 0)
+            {
+                MessageBox.Show("Дневная ставка должна быть больше 0 или равна 0.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (EditingAsset.EnginePower.HasValue && EditingAsset.EnginePower.Value <= 0)
+            {
+                MessageBox.Show("Мощность двигателя должна быть больше 0 или не указана.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (EditingAsset.Weight.HasValue && EditingAsset.Weight.Value <= 0)
+            {
+                MessageBox.Show("Вес должен быть больше 0 или не указан.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (EditingAsset.YearOfManufacture.HasValue)
+            {
+                int currentYear = DateTime.Now.Year;
+                if (EditingAsset.YearOfManufacture.Value < 1900 || EditingAsset.YearOfManufacture.Value > currentYear)
+                {
+                    MessageBox.Show(string.Format("Год выпуска должен быть между 1900 и {0} годом.", currentYear),
+                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+            
             try
             {
                 EditingAsset.ModifiedDate = DateTime.Now;
