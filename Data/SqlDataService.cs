@@ -364,6 +364,27 @@ namespace ForVlad.Data
                     "Инвентарный номер должен быть указан. Укажите корректный инвентарный номер техники.");
             }
             
+            // CRITICAL: CK_Assets_VehicleFields constraint validation
+            if (asset.AssetGroup == AssetGroup.Vehicle)
+            {
+                if (string.IsNullOrEmpty(asset.Manufacturer))
+                {
+                    throw new InvalidOperationException(
+                        "Для транспортного средства необходимо указать марку (Manufacturer).");
+                }
+                
+                if (string.IsNullOrEmpty(asset.Model))
+                {
+                    throw new InvalidOperationException(
+                        "Для транспортного средства необходимо указать модель (Model).");
+                }
+            }
+            else if (asset.AssetGroup == AssetGroup.Equipment)
+            {
+                // Для оборудования VehicleBrand и VehicleModel должны быть NULL
+                // Они будут автоматически очищены в AddAssetParameters
+            }
+            
             // Проверяем, что хотя бы одна ставка больше 0
             if (asset.HourlyRate <= 0 && asset.DailyRate <= 0 && asset.MonthlyRentalRate <= 0)
             {
@@ -451,6 +472,22 @@ namespace ForVlad.Data
             {
                 throw new InvalidOperationException(
                     "Инвентарный номер должен быть указан. Укажите корректный инвентарный номер техники.");
+            }
+            
+            // CRITICAL: CK_Assets_VehicleFields constraint validation
+            if (asset.AssetGroup == AssetGroup.Vehicle)
+            {
+                if (string.IsNullOrEmpty(asset.Manufacturer))
+                {
+                    throw new InvalidOperationException(
+                        "Для транспортного средства необходимо указать марку (Manufacturer).");
+                }
+                
+                if (string.IsNullOrEmpty(asset.Model))
+                {
+                    throw new InvalidOperationException(
+                        "Для транспортного средства необходимо указать модель (Model).");
+                }
             }
             
             // Проверяем, что хотя бы одна ставка больше 0
@@ -613,8 +650,16 @@ namespace ForVlad.Data
             command.Parameters.AddWithValue("@InventoryNumber", string.IsNullOrEmpty(asset.InventoryNumber) ? (object)DBNull.Value : asset.InventoryNumber);
             command.Parameters.AddWithValue("@Name", string.IsNullOrEmpty(asset.Name) ? (object)DBNull.Value : asset.Name);
             command.Parameters.AddWithValue("@AssetGroup", (int)asset.AssetGroup);
-            command.Parameters.AddWithValue("@VehicleBrand", string.IsNullOrEmpty(asset.Manufacturer) ? (object)DBNull.Value : asset.Manufacturer);
-            command.Parameters.AddWithValue("@VehicleModel", string.IsNullOrEmpty(asset.Model) ? (object)DBNull.Value : asset.Model);
+            
+            // CRITICAL: CK_Assets_VehicleFields constraint requires:
+            // - Vehicle (AssetGroup = 0): VehicleBrand AND VehicleModel must be NOT NULL
+            // - Equipment (AssetGroup = 1): VehicleBrand AND VehicleModel must be NULL
+            bool isVehicle = asset.AssetGroup == AssetGroup.Vehicle;
+            string vehicleBrand = isVehicle ? asset.Manufacturer : null;
+            string vehicleModel = isVehicle ? asset.Model : null;
+            
+            command.Parameters.AddWithValue("@VehicleBrand", string.IsNullOrEmpty(vehicleBrand) ? (object)DBNull.Value : vehicleBrand);
+            command.Parameters.AddWithValue("@VehicleModel", string.IsNullOrEmpty(vehicleModel) ? (object)DBNull.Value : vehicleModel);
             command.Parameters.AddWithValue("@VinNumber", string.IsNullOrEmpty(asset.SerialNumber) ? (object)DBNull.Value : asset.SerialNumber);
             command.Parameters.AddWithValue("@ManufactureYear", asset.YearOfManufacture ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@HourlyRate", hourlyRate);
@@ -622,11 +667,9 @@ namespace ForVlad.Data
             command.Parameters.AddWithValue("@AssetCondition", (int)asset.AssetCondition);
             command.Parameters.AddWithValue("@IsAvailable", asset.IsAvailable);
             command.Parameters.AddWithValue("@Description", string.IsNullOrEmpty(asset.Description) ? (object)DBNull.Value : asset.Description);
-            // REFACTOR: Удалено дублирующееся свойство Notes, используется Description
             command.Parameters.AddWithValue("@VehicleSubcategory", asset.VehicleSubcategory.HasValue ? (object)(int)asset.VehicleSubcategory.Value : DBNull.Value);
             command.Parameters.AddWithValue("@EquipmentSubcategory", asset.EquipmentSubcategory.HasValue ? (object)(int)asset.EquipmentSubcategory.Value : DBNull.Value);
             command.Parameters.AddWithValue("@EquipmentType", string.IsNullOrEmpty(asset.EquipmentType) ? (object)DBNull.Value : asset.EquipmentType);
-            // Новые параметры
             command.Parameters.AddWithValue("@EnginePower", asset.EnginePower ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@RegistrationNumber", string.IsNullOrEmpty(asset.RegistrationNumber) ? (object)DBNull.Value : asset.RegistrationNumber);
             command.Parameters.AddWithValue("@Weight", asset.Weight ?? (object)DBNull.Value);
@@ -1223,6 +1266,7 @@ namespace ForVlad.Data
             var today = DateTime.Today;
             var rows = new List<PaymentReportRow>();
             
+            // Фильтрация выполняется в C# для точного сравнения дат
             var payments = GetPaymentSchedules();
             
             foreach (var payment in payments)
@@ -1235,6 +1279,7 @@ namespace ForVlad.Data
                 if (unpaidOnly && isPaid)
                     continue;
                 
+                // Фильтрация по датам (учитывает год, месяц и день)
                 if (dueFrom.HasValue && payment.DueDate.Date < dueFrom.Value.Date)
                     continue;
                 if (dueTo.HasValue && payment.DueDate.Date > dueTo.Value.Date)

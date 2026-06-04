@@ -32,15 +32,31 @@ namespace ForVlad.ViewModels
         public DateTime? DueDateFrom
         {
             get => _dueDateFrom;
-            set => SetField(ref _dueDateFrom, value);
+            set
+            {
+                if (SetField(ref _dueDateFrom, value))
+                {
+                    OnPropertyChanged(nameof(DueDateFromDisplay));
+                }
+            }
         }
         
         private DateTime? _dueDateTo;
         public DateTime? DueDateTo
         {
             get => _dueDateTo;
-            set => SetField(ref _dueDateTo, value);
+            set
+            {
+                if (SetField(ref _dueDateTo, value))
+                {
+                    OnPropertyChanged(nameof(DueDateToDisplay));
+                }
+            }
         }
+        
+        // Вспомогательные свойства для отображения
+        public string DueDateFromDisplay => DueDateFrom?.ToString("dd.MM.yyyy") ?? "-";
+        public string DueDateToDisplay => DueDateTo?.ToString("dd.MM.yyyy") ?? "-";
         
         private bool _unpaidOnly = true;
         public bool UnpaidOnly
@@ -89,16 +105,21 @@ namespace ForVlad.ViewModels
         
         public void LoadReport()
         {
-            var rows = _dataService.GetPaymentReport(DueDateFrom, DueDateTo, UnpaidOnly);
+            var dueFrom = DueDateFrom?.Date;
+            var dueTo = DueDateTo?.Date;
+            
+            var rows = _dataService.GetPaymentReport(dueFrom, dueTo, UnpaidOnly);
             Payments.Clear();
             foreach (var row in rows)
                 Payments.Add(row);
             
-            var periodStart = DueDateFrom ?? DateTime.Today.AddMonths(-1);
-            var periodEnd = DueDateTo ?? DateTime.Today.AddMonths(1);
+            var periodStart = dueFrom ?? DateTime.Today.AddMonths(-1);
+            var periodEnd = dueTo ?? DateTime.Today.AddMonths(1);
             Summary = ReportCalculationService.BuildFinancialSummary(rows, periodStart, periodEnd);
             OnPropertyChanged(nameof(Summary));
             OnPropertyChanged(nameof(HasPayments));
+            OnPropertyChanged(nameof(DueDateFromDisplay));
+            OnPropertyChanged(nameof(DueDateToDisplay));
         }
         
         private void ClearFilters()

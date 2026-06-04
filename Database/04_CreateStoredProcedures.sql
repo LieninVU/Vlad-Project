@@ -93,27 +93,44 @@ BEGIN
         
         IF @PaymentScheduleType = 0
         BEGIN
+            -- Единовременный платёж
             INSERT INTO PaymentSchedules (ContractId, PaymentNumber, Description, DueDate, Amount)
             VALUES (@NewContractId, 1, 'Полная оплата', @StartDate, @TotalAmount);
         END
         ELSE IF @PaymentScheduleType = 1
         BEGIN
-            DECLARE @Months INT = DATEDIFF(MONTH, @StartDate, @EndDate);
-            IF @Months = 0 SET @Months = 1;
-            DECLARE @BaseAmount DECIMAL(12,2) = FLOOR(@TotalAmount / @Months);
-            DECLARE @Remainder DECIMAL(12,2) = @TotalAmount - (@BaseAmount * @Months);
-            DECLARE @i INT = 1;
-            WHILE @i <= @Months
+            -- Ежемесячные платежи с корректным учётом года
+            -- Рассчитываем количество месяцев с учётом полных периодов
+            DECLARE @CurrentDate DATE = @StartDate;
+            DECLARE @PaymentCount INT = 0;
+            
+            -- Сначала считаем количество платежей
+            WHILE @CurrentDate <= @EndDate
             BEGIN
-                DECLARE @Amount DECIMAL(12,2) = @BaseAmount + CASE WHEN @i = @Months THEN @Remainder ELSE 0 END;
+                SET @PaymentCount = @PaymentCount + 1;
+                SET @CurrentDate = DATEADD(MONTH, 1, @CurrentDate);
+            END
+            
+            -- Если платежей нет, создаём хотя бы один
+            IF @PaymentCount = 0 SET @PaymentCount = 1;
+            
+            DECLARE @BaseAmount DECIMAL(12,2) = FLOOR(@TotalAmount / @PaymentCount);
+            DECLARE @Remainder DECIMAL(12,2) = @TotalAmount - (@BaseAmount * @PaymentCount);
+            DECLARE @i INT = 1;
+            SET @CurrentDate = @StartDate;
+            
+            WHILE @i <= @PaymentCount
+            BEGIN
+                DECLARE @Amount DECIMAL(12,2) = @BaseAmount + CASE WHEN @i = @PaymentCount THEN @Remainder ELSE 0 END;
                 DECLARE @Description NVARCHAR(200) = 
                     CASE WHEN @i = 1 THEN 'Аванс'
-                         WHEN @i = @Months THEN 'Окончательный платёж'
+                         WHEN @i = @PaymentCount THEN 'Окончательный платёж'
                          ELSE 'Ежемесячный платёж'
                     END;
                 INSERT INTO PaymentSchedules (ContractId, PaymentNumber, Description, DueDate, Amount)
-                VALUES (@NewContractId, @i, @Description, DATEADD(MONTH, @i - 1, @StartDate), @Amount);
+                VALUES (@NewContractId, @i, @Description, @CurrentDate, @Amount);
                 SET @i = @i + 1;
+                SET @CurrentDate = DATEADD(MONTH, 1, @CurrentDate);
             END
         END
         

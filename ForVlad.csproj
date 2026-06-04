@@ -96,6 +96,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\LoginWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -140,6 +144,13 @@
       <DependentUpon>SettingsView.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Views\LoginWindow.xaml.cs">
+      <DependentUpon>LoginWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Behaviors\PasswordBoxBehavior.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Models\Enums.cs" />
     <Compile Include="Models\ReportModels.cs" />
@@ -149,6 +160,7 @@
     <Compile Include="Models\ContractSpecification.cs" />
     <Compile Include="Models\PaymentSchedule.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
+    <Compile Include="ViewModels\LoginViewModel.cs" />
     <Compile Include="ViewModels\RelayCommand.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Data\DatabaseConnection.cs" />
@@ -158,9 +170,12 @@
     <Compile Include="Data\SimpleDataService.cs" />
     <Compile Include="Services\CsvExportService.cs" />
     <Compile Include="Services\ReportCalculationService.cs" />
+    <Compile Include="Services\AuthenticationService.cs" />
+    <Compile Include="Services\IAuthenticationService.cs" />
     <Compile Include="Converters\IntToVisibilityConverter.cs" />
     <Compile Include="Converters\DaysRemainingConverter.cs" />
     <Compile Include="Converters\StatusConverters.cs" />
+    <Compile Include="Converters\BoolToVisibilityConverter.cs" />
     <Compile Include="ViewModels\ContractsViewModel.cs" />
     <Compile Include="ViewModels\AssetsViewModel.cs" />
     <Compile Include="ViewModels\CounterpartiesViewModel.cs" />
