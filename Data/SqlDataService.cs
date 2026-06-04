@@ -1316,17 +1316,17 @@ namespace ForVlad.Data
             var daysInPeriod = ReportCalculationService.OverlapDays(periodStart, periodEnd, periodStart, periodEnd);
             if (daysInPeriod <= 0)
                 daysInPeriod = 1;
-            
+
             var assets = GetAssets();
             if (assetGroup.HasValue)
                 assets = assets.Where(a => a.AssetGroup == assetGroup.Value).ToList();
-            
+
             foreach (var asset in assets)
             {
                 var specs = GetSpecifications().Where(s => s.AssetId == asset.Id).ToList();
                 int daysRented = 0;
                 decimal revenue = 0;
-                
+
                 foreach (var spec in specs)
                 {
                     var contract = GetContract(spec.ContractId);
@@ -1334,26 +1334,32 @@ namespace ForVlad.Data
                         continue;
                     if (!ReportCalculationService.ContractOverlapsPeriod(contract, periodStart, periodEnd))
                         continue;
-                    
+
                     var contractEnd = contract.EndDate?.Date ?? periodEnd.Date;
                     var overlap = ReportCalculationService.OverlapDays(
                         contract.StartDate, contractEnd, periodStart, periodEnd);
-                    
+
                     daysRented += overlap;
-                    
+
                     var contractDays = Math.Max(1, (int)(contractEnd - contract.StartDate.Date).TotalDays + 1);
                     revenue += spec.TotalPrice * overlap / (decimal)contractDays;
                 }
-                
+
                 daysRented = Math.Min(daysRented, daysInPeriod);
                 var rate = daysInPeriod > 0 ? (double)daysRented / daysInPeriod * 100.0 : 0;
-                
+
                 string alert = null;
-                if (rate < 30 && daysInPeriod >= 7)
+                if (specs.Count == 0)
+                {
+                    alert = "Нет договоров (создайте договор для загрузки)";
+                }
+                else if (rate < 30 && daysInPeriod >= 7)
+                {
                     alert = "Низкая загрузка (< 30%)";
+                }
                 if (asset.IsAvailable && rate > 80)
                     alert = string.IsNullOrEmpty(alert) ? "Высокая загрузка" : alert;
-                
+
                 rows.Add(new AssetUtilizationRow
                 {
                     AssetId = asset.Id,
@@ -1370,8 +1376,355 @@ namespace ForVlad.Data
                     AlertMessage = alert ?? ""
                 });
             }
-            
+
             return rows.OrderByDescending(r => r.UtilizationRate).ToList();
+        }
+        
+        #endregion
+        
+        #region ContractSpecifications CRUD
+        
+        public ContractSpecification GetSpecification(int id)
+        {
+            string sql = @"
+                SELECT Id, ContractId, AssetId, Quantity, UnitPrice,
+                       [PeriodType], AdditionalConditions
+                FROM ContractSpecifications
+                WHERE Id = @Id";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    connection.Open();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return MapContractSpecification(reader);
+                        }
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        public void SaveSpecification(ContractSpecification specification)
+        {
+            if (specification.Id == 0)
+            {
+                InsertSpecification(specification);
+            }
+            else
+            {
+                UpdateSpecification(specification);
+            }
+        }
+        
+        private void InsertSpecification(ContractSpecification specification)
+        {
+            if (specification.ContractId <= 0)
+            {
+                throw new InvalidOperationException("Не указан договор для спецификации.");
+            }
+            
+            if (specification.AssetId <= 0)
+            {
+                throw new InvalidOperationException("Не указана техника для спецификации.");
+            }
+            
+            if (specification.Quantity <= 0)
+            {
+                throw new InvalidOperationException("Количество должно быть больше 0.");
+            }
+            
+            if (specification.UnitPrice <= 0)
+            {
+                throw new InvalidOperationException("Цена за единицу должна быть больше 0.");
+            }
+            
+            string sql = @"
+                INSERT INTO ContractSpecifications
+                (ContractId, AssetId, Quantity, UnitPrice, [PeriodType], AdditionalConditions)
+                VALUES
+                (@ContractId, @AssetId, @Quantity, @UnitPrice, @PeriodType, @AdditionalConditions);
+                SELECT SCOPE_IDENTITY();";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    AddSpecificationParameters(command, specification);
+                    connection.Open();
+                    specification.Id = Convert.ToInt32(command.ExecuteScalar());
+                }
+            }
+        }
+        
+        private void UpdateSpecification(ContractSpecification specification)
+        {
+            if (specification.Quantity <= 0)
+            {
+                throw new InvalidOperationException("Количество должно быть больше 0.");
+            }
+            
+            if (specification.UnitPrice <= 0)
+            {
+                throw new InvalidOperationException("Цена за единицу должна быть больше 0.");
+            }
+            
+            string sql = @"
+                UPDATE ContractSpecifications SET
+                    Quantity = @Quantity,
+                    UnitPrice = @UnitPrice,
+                    [PeriodType] = @PeriodType,
+                    AdditionalConditions = @AdditionalConditions
+                WHERE Id = @Id";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    AddSpecificationParameters(command, specification);
+                    command.Parameters.AddWithValue("@Id", specification.Id);
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+        
+        public void DeleteSpecification(int id)
+        {
+            string sql = "DELETE FROM ContractSpecifications WHERE Id = @Id";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+        
+        private void AddSpecificationParameters(SqlCommand command, ContractSpecification spec)
+        {
+            command.Parameters.AddWithValue("@ContractId", spec.ContractId);
+            command.Parameters.AddWithValue("@AssetId", spec.AssetId);
+            command.Parameters.AddWithValue("@Quantity", spec.Quantity);
+            command.Parameters.AddWithValue("@UnitPrice", spec.UnitPrice);
+            command.Parameters.AddWithValue("@PeriodType", (int)spec.PeriodType);
+            command.Parameters.AddWithValue("@AdditionalConditions", 
+                string.IsNullOrEmpty(spec.AdditionalConditions) ? (object)DBNull.Value : spec.AdditionalConditions);
+        }
+        
+        #endregion
+        
+        #region PaymentSchedules CRUD
+        
+        public PaymentSchedule GetPaymentSchedule(int id)
+        {
+            string sql = @"
+                SELECT Id, ContractId, PaymentNumber, Description,
+                       DueDate, Amount, IsPaid, PaidDate, PaymentMethod, PaymentReference
+                FROM PaymentSchedules
+                WHERE Id = @Id";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    connection.Open();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return MapPaymentSchedule(reader);
+                        }
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        public void SavePaymentSchedule(PaymentSchedule schedule)
+        {
+            if (schedule.Id == 0)
+            {
+                InsertPaymentSchedule(schedule);
+            }
+            else
+            {
+                UpdatePaymentSchedule(schedule);
+            }
+        }
+        
+        private void InsertPaymentSchedule(PaymentSchedule schedule)
+        {
+            if (schedule.ContractId <= 0)
+            {
+                throw new InvalidOperationException("Не указан договор для платежа.");
+            }
+            
+            if (schedule.Amount <= 0)
+            {
+                throw new InvalidOperationException("Сумма платежа должна быть больше 0.");
+            }
+            
+            // Get next payment number for contract
+            int paymentNumber = GetNextPaymentNumber(schedule.ContractId);
+            
+            string sql = @"
+                INSERT INTO PaymentSchedules
+                (ContractId, PaymentNumber, Description, DueDate, Amount, IsPaid, PaidDate, PaymentMethod, PaymentReference)
+                VALUES
+                (@ContractId, @PaymentNumber, @Description, @DueDate, @Amount, @IsPaid, @PaidDate, @PaymentMethod, @PaymentReference);
+                SELECT SCOPE_IDENTITY();";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    AddPaymentScheduleParameters(command, schedule, paymentNumber);
+                    connection.Open();
+                    schedule.Id = Convert.ToInt32(command.ExecuteScalar());
+                    schedule.PaymentNumber = paymentNumber;
+                }
+            }
+        }
+        
+        private void UpdatePaymentSchedule(PaymentSchedule schedule)
+        {
+            if (schedule.Amount <= 0)
+            {
+                throw new InvalidOperationException("Сумма платежа должна быть больше 0.");
+            }
+            
+            string sql = @"
+                UPDATE PaymentSchedules SET
+                    Description = @Description,
+                    DueDate = @DueDate,
+                    Amount = @Amount,
+                    IsPaid = @IsPaid,
+                    PaidDate = @PaidDate,
+                    PaymentMethod = @PaymentMethod,
+                    PaymentReference = @PaymentReference
+                WHERE Id = @Id";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", schedule.Id);
+                    command.Parameters.AddWithValue("@Description", 
+                        string.IsNullOrEmpty(schedule.Description) ? (object)DBNull.Value : schedule.Description);
+                    command.Parameters.AddWithValue("@DueDate", schedule.DueDate);
+                    command.Parameters.AddWithValue("@Amount", schedule.Amount);
+                    command.Parameters.AddWithValue("@IsPaid", schedule.IsPaid);
+                    command.Parameters.AddWithValue("@PaidDate", 
+                        schedule.PaymentDate ?? (object)DBNull.Value);
+                    command.Parameters.AddWithValue("@PaymentMethod", 
+                        string.IsNullOrEmpty(schedule.PaymentMethod) ? (object)DBNull.Value : int.Parse(schedule.PaymentMethod));
+                    command.Parameters.AddWithValue("@PaymentReference", 
+                        string.IsNullOrEmpty(schedule.Notes) ? (object)DBNull.Value : schedule.Notes);
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+        
+        public void DeletePaymentSchedule(int id)
+        {
+            string sql = "DELETE FROM PaymentSchedules WHERE Id = @Id";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+        
+        private int GetNextPaymentNumber(int contractId)
+        {
+            string sql = "SELECT ISNULL(MAX(PaymentNumber), 0) + 1 FROM PaymentSchedules WHERE ContractId = @ContractId";
+            
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@ContractId", contractId);
+                    connection.Open();
+                    return (int)command.ExecuteScalar();
+                }
+            }
+        }
+        
+        private void AddPaymentScheduleParameters(SqlCommand command, PaymentSchedule schedule, int paymentNumber)
+        {
+            command.Parameters.AddWithValue("@ContractId", schedule.ContractId);
+            command.Parameters.AddWithValue("@PaymentNumber", paymentNumber);
+            command.Parameters.AddWithValue("@Description", 
+                string.IsNullOrEmpty(schedule.Description) ? (object)DBNull.Value : schedule.Description);
+            command.Parameters.AddWithValue("@DueDate", schedule.DueDate);
+            command.Parameters.AddWithValue("@Amount", schedule.Amount);
+            command.Parameters.AddWithValue("@IsPaid", schedule.IsPaid);
+            command.Parameters.AddWithValue("@PaidDate", 
+                schedule.PaymentDate ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@PaymentMethod", 
+                string.IsNullOrEmpty(schedule.PaymentMethod) ? (object)DBNull.Value : int.Parse(schedule.PaymentMethod));
+            command.Parameters.AddWithValue("@PaymentReference", 
+                string.IsNullOrEmpty(schedule.Notes) ? (object)DBNull.Value : schedule.Notes);
+        }
+        
+        public void GeneratePaymentSchedule(int contractId, int paymentCount, DateTime startDate, decimal amountPerPayment)
+        {
+            var contract = GetContract(contractId);
+            if (contract == null)
+            {
+                throw new InvalidOperationException("Договор не найден.");
+            }
+            
+            if (paymentCount <= 0)
+            {
+                throw new InvalidOperationException("Количество платежей должно быть больше 0.");
+            }
+            
+            if (amountPerPayment <= 0)
+            {
+                throw new InvalidOperationException("Сумма платежа должна быть больше 0.");
+            }
+            
+            // Delete existing payments for this contract
+            var existingPayments = GetPaymentSchedules(contractId);
+            foreach (var payment in existingPayments)
+            {
+                DeletePaymentSchedule(payment.Id);
+            }
+            
+            // Generate new payment schedule
+            for (int i = 1; i <= paymentCount; i++)
+            {
+                var schedule = new PaymentSchedule
+                {
+                    ContractId = contractId,
+                    Description = $"Платёж {i} из {paymentCount}",
+                    DueDate = startDate.AddMonths(i - 1),
+                    Amount = amountPerPayment,
+                    IsPaid = false,
+                    Status = PaymentStatus.Pending
+                };
+                
+                SavePaymentSchedule(schedule);
+            }
         }
         
         #endregion

@@ -28,10 +28,21 @@ namespace ForVlad.Data
         void SaveContract(Contract contract);
         void DeleteContract(int id);
         
+        // Спецификации договоров
+        List<ContractSpecification> GetSpecifications(int? contractId = null);
+        ContractSpecification GetSpecification(int id);
+        void SaveSpecification(ContractSpecification specification);
+        void DeleteSpecification(int id);
+        
         // Графики платежей
         List<PaymentSchedule> GetPaymentSchedules(int? contractId = null);
-        List<ContractSpecification> GetSpecifications(int? contractId = null);
+        PaymentSchedule GetPaymentSchedule(int id);
+        void SavePaymentSchedule(PaymentSchedule schedule);
         void MarkPaymentPaid(int paymentId, DateTime? paymentDate = null);
+        void DeletePaymentSchedule(int id);
+        
+        // Генерация графика платежей
+        void GeneratePaymentSchedule(int contractId, int paymentCount, DateTime startDate, decimal amountPerPayment);
         
         // Отчётность
         List<PaymentReportRow> GetPaymentReport(DateTime? dueFrom, DateTime? dueTo, bool unpaidOnly);

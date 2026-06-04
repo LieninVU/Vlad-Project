@@ -32,6 +32,8 @@
                     <Button Content="🔄 Обновить" Background="#3498DB" Foreground="White" Command="{Binding RefreshCommand}"/>
                     <Button Content="📤 Экспорт CSV" Background="#27AE60" Foreground="White" Command="{Binding ExportToCsvCommand}"/>
                 </StackPanel>
+                <TextBlock Text="💡 Загрузка техники рассчитывается автоматически на основе договоров аренды. Чтобы добавить нагрузку на новую технику, создайте договор с включением этой техники в спецификацию."
+                           FontSize="11" Foreground="#7F8C8D" Margin="0,6,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
         

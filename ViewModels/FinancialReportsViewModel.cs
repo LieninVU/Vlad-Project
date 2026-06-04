@@ -89,17 +89,17 @@ namespace ForVlad.ViewModels
             _dataService = dataService;
             Payments = new ObservableCollection<PaymentReportRow>();
             Summary = new FinancialSummary();
-            
-            var today = DateTime.Today;
-            DueDateFrom = today.AddMonths(-3);
-            DueDateTo = today.AddMonths(3);
-            
+
+            // Показываем ВСЕ данные без ограничения по датам
+            DueDateFrom = null;
+            DueDateTo = null;
+
             RefreshCommand = new RelayCommand(_ => LoadReport());
             ApplyFiltersCommand = new RelayCommand(_ => LoadReport());
             ClearFiltersCommand = new RelayCommand(_ => ClearFilters());
             ExportToCsvCommand = new RelayCommand(_ => ExportCsv(), _ => HasPayments);
             MarkPaidCommand = new RelayCommand(_ => MarkSelectedPaid(), _ => CanMarkPaid());
-            
+
             LoadReport();
         }
         
@@ -124,9 +124,9 @@ namespace ForVlad.ViewModels
         
         private void ClearFilters()
         {
-            var today = DateTime.Today;
-            DueDateFrom = today.AddMonths(-3);
-            DueDateTo = today.AddMonths(3);
+            // Сбрасываем фильтры - показываем ВСЕ данные
+            DueDateFrom = null;
+            DueDateTo = null;
             UnpaidOnly = false;
             LoadReport();
         }

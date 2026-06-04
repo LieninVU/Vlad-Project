@@ -45,19 +45,25 @@
         <!-- Панель инструментов -->
         <Border Grid.Row="0" Background="#F8F9FA" Padding="10" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
-                <Button Content="+ Новый договор" 
-                        Background="#2ECC71" 
+                <Button Content="+ Новый договор"
+                        Background="#2ECC71"
                         Foreground="White"
                         FontWeight="Bold"
                         Command="{Binding AddContractCommand}"/>
-                
-                <Button Content="✏️ Редактировать" 
-                        Background="#3498DB" 
+
+                <Button Content="📋 Детали"
+                        Background="#9B59B6"
+                        Foreground="White"
+                        Command="{Binding ViewContractDetailsCommand}"
+                        ToolTip="Просмотреть спецификации и платежи"/>
+
+                <Button Content="✏️ Редактировать"
+                        Background="#3498DB"
                         Foreground="White"
                         Command="{Binding EditContractCommand}"/>
-                
-                <Button Content="🗑️ Удалить" 
-                        Background="#E74C3C" 
+
+                <Button Content="🗑️ Удалить"
+                        Background="#E74C3C"
                         Foreground="White"
                         Command="{Binding DeleteContractCommand}"/>
                 

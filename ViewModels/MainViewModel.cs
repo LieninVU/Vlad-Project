@@ -96,6 +96,16 @@ namespace ForVlad.ViewModels
         {
             var view = new ContractsView();
             var vm = new ContractsViewModel(_dataService);
+            vm.SetNavigateToContractDetails(NavigateToContractDetails);
+            view.DataContext = vm;
+            CurrentView = view;
+        }
+
+        private void NavigateToContractDetails(int contractId)
+        {
+            var view = new ContractDetailsView();
+            var vm = new ContractDetailsViewModel(_dataService, contractId);
+            vm.SetNavigateBack(NavigateToContracts);
             view.DataContext = vm;
             CurrentView = view;
         }

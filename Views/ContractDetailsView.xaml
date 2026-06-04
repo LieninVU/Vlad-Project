@@ -1,0 +1,205 @@
+<UserControl x:Class="ForVlad.Views.ContractDetailsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ForVlad.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="900">
+    
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="MinWidth" Value="80"/>
+        </Style>
+        <converters:IntToVisibilityConverter x:Key="BoolVisConverter" />
+        <converters:IntToVisibilityInverseConverter x:Key="BoolVisInverseConverter" />
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header with back button -->
+        <Border Grid.Row="0" Background="#F8F9FA" Padding="10" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="← Назад к договорам"
+                        Background="#95A5A6"
+                        Foreground="White"
+                        Command="{Binding BackCommand}"
+                        Padding="10,5"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Specifications Section -->
+        <Border Grid.Row="1" Background="White" Margin="0,0,0,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <Border Grid.Row="0" Background="#E8F6F3" Padding="10">
+                    <Grid>
+                        <TextBlock Text="Спецификации договора" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="+ Добавить" Background="#27AE60" Foreground="White" Command="{Binding AddSpecificationCommand}"/>
+                            <Button Content="Изменить" Background="#3498DB" Foreground="White" Command="{Binding EditSpecificationCommand}"/>
+                            <Button Content="Вернуть технику" Background="#E67E22" Foreground="White" Command="{Binding ReturnAssetCommand}" ToolTip="Вернуть технику и сделать доступной"/>
+                            <Button Content="Удалить" Background="#E74C3C" Foreground="White" Command="{Binding DeleteSpecificationCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <Border Grid.Row="1" Background="#F8F9FA" Padding="8">
+                    <TextBlock Text="{Binding TotalSpecificationsAmount, StringFormat=Итого: {0:N2} руб.}" FontWeight="Bold"/>
+                </Border>
+                
+                <DataGrid Grid.Row="2" ItemsSource="{Binding Specifications}" SelectedItem="{Binding SelectedSpecification}"
+                          AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None"
+                          Visibility="{Binding HasSpecifications, Converter={StaticResource BoolVisConverter}}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Техника" Binding="{Binding Asset.Name}" Width="200"/>
+                        <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity}" Width="70"/>
+                        <DataGridTextColumn Header="Цена" Binding="{Binding UnitPrice, StringFormat=N2}" Width="100"/>
+                        <DataGridTextColumn Header="Сумма" Binding="{Binding TotalPrice, StringFormat=N2}" Width="100"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                
+                <TextBlock Grid.Row="2" Text="Добавьте технику для аренды" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#7F8C8D"
+                           Visibility="{Binding HasSpecifications, Converter={StaticResource BoolVisInverseConverter}}"/>
+            </Grid>
+        </Border>
+        
+        <!-- Payments Section -->
+        <Border Grid.Row="2" Background="White">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <Border Grid.Row="0" Background="#EBF5FB" Padding="10">
+                    <Grid>
+                        <TextBlock Text="График платежей" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Сгенерировать" Background="#9B59B6" Foreground="White" Command="{Binding OpenGenerateScheduleCommand}"/>
+                            <Button Content="+ Добавить" Background="#27AE60" Foreground="White" Command="{Binding AddPaymentCommand}"/>
+                            <Button Content="Оплачено" Background="#2ECC71" Foreground="White" Command="{Binding MarkPaidCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <Border Grid.Row="1" Background="#F8F9FA" Padding="8">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding TotalPaymentsAmount, StringFormat=Всего: {0:N2} руб.}" Margin="0,0,20,0"/>
+                        <TextBlock Text="{Binding PaidAmount, StringFormat=Оплачено: {0:N2} руб.}" Foreground="#27AE60"/>
+                    </StackPanel>
+                </Border>
+                
+                <DataGrid Grid.Row="2" ItemsSource="{Binding Payments}" SelectedItem="{Binding SelectedPayment}"
+                          AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None"
+                          Visibility="{Binding HasPayments, Converter={StaticResource BoolVisConverter}}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="№" Binding="{Binding PaymentNumber}" Width="40"/>
+                        <DataGridTextColumn Header="Описание" Binding="{Binding Description}" Width="150"/>
+                        <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90"/>
+                        <DataGridTextColumn Header="Сумма" Binding="{Binding Amount, StringFormat=N2}" Width="100"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                
+                <TextBlock Grid.Row="2" Text="Сгенерируйте график платежей" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#7F8C8D"
+                           Visibility="{Binding HasPayments, Converter={StaticResource BoolVisInverseConverter}}"/>
+            </Grid>
+        </Border>
+        
+        <!-- Dialog: Specification -->
+        <Border Grid.RowSpan="3" Background="#80000000" Visibility="{Binding IsSpecificationDialogOpen, Converter={StaticResource BoolVisConverter}}">
+            <Border Background="White" Width="450" Padding="20" CornerRadius="5">
+                <StackPanel>
+                    <TextBlock Text="{Binding SpecificationDialogTitle}" FontWeight="Bold" FontSize="16" Margin="0,0,0,15"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Text="Техника:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Assets}" SelectedValue="{Binding EditingSpecification.AssetId}" SelectedValuePath="Id" DisplayMemberPath="Name" Margin="5"/>
+                        
+                        <TextBlock Grid.Row="1" Text="Количество:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EditingSpecification.Quantity}" Margin="5"/>
+                        
+                        <TextBlock Grid.Row="2" Text="Цена:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditingSpecification.UnitPrice}" Margin="5"/>
+                        
+                        <TextBlock Grid.Row="3" Text="Период:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding PeriodTypes}" SelectedItem="{Binding EditingSpecification.PeriodType}" Margin="5"/>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+                        <Button Content="Сохранить" Background="#27AE60" Foreground="White" Width="90" Margin="0,0,10,0" Command="{Binding SaveSpecificationCommand}"/>
+                        <Button Content="Отмена" Background="#95A5A6" Foreground="White" Width="80" Command="{Binding CancelSpecificationCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+        
+        <!-- Dialog: Payment -->
+        <Border Grid.RowSpan="3" Background="#80000000" Visibility="{Binding IsPaymentDialogOpen, Converter={StaticResource BoolVisConverter}}">
+            <Border Background="White" Width="400" Padding="20" CornerRadius="5">
+                <StackPanel>
+                    <TextBlock Text="{Binding PaymentDialogTitle}" FontWeight="Bold" FontSize="16" Margin="0,0,0,15"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Text="Описание:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditingPayment.Description}" Margin="5"/>
+                        
+                        <TextBlock Grid.Row="1" Text="Срок:" VerticalAlignment="Center"/>
+                        <DatePicker Grid.Row="1" Grid.Column="1" SelectedDate="{Binding EditingPayment.DueDate}" Margin="5"/>
+                        
+                        <TextBlock Grid.Row="2" Text="Сумма:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditingPayment.Amount}" Margin="5"/>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+                        <Button Content="Сохранить" Background="#27AE60" Foreground="White" Width="90" Margin="0,0,10,0" Command="{Binding SavePaymentCommand}"/>
+                        <Button Content="Отмена" Background="#95A5A6" Foreground="White" Width="80" Command="{Binding CancelPaymentCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+        
+        <!-- Dialog: Generate Schedule -->
+        <Border Grid.RowSpan="3" Background="#80000000" Visibility="{Binding IsGenerateScheduleDialogOpen, Converter={StaticResource BoolVisConverter}}">
+            <Border Background="White" Width="380" Padding="20" CornerRadius="5">
+                <StackPanel>
+                    <TextBlock Text="Генерация графика платежей" FontWeight="Bold" FontSize="16" Margin="0,0,0,15"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Text="Кол-во платежей:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding GeneratedPaymentCount}" Margin="5"/>
+                        
+                        <TextBlock Grid.Row="1" Text="Дата первого:" VerticalAlignment="Center"/>
+                        <DatePicker Grid.Row="1" Grid.Column="1" SelectedDate="{Binding GeneratedStartDate}" Margin="5"/>
+                        
+                        <TextBlock Grid.Row="2" Text="Сумма платежа:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding GeneratedAmountPerPayment}" Margin="5"/>
+                    </Grid>
+                    <TextBlock Text="Существующие платежи будут удалены!" Foreground="#E74C3C" Margin="0,10,0,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+                        <Button Content="Сгенерировать" Background="#9B59B6" Foreground="White" Width="110" Margin="0,0,10,0" Command="{Binding GenerateScheduleCommand}"/>
+                        <Button Content="Отмена" Background="#95A5A6" Foreground="White" Width="80" Command="{Binding CancelGenerateScheduleCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

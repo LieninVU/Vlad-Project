@@ -133,6 +133,7 @@ namespace ForVlad.ViewModels
         public ICommand ToggleAvailabilityCommand { get; }
         public ICommand SaveAssetCommand { get; }
         public ICommand CancelCommand { get; }
+        public ICommand RentOutAssetCommand { get; }
         
         public AssetsViewModel(ISimpleDataService dataService)
         {
@@ -150,6 +151,7 @@ namespace ForVlad.ViewModels
             ToggleAvailabilityCommand = new RelayCommand(_ => ToggleAvailability(), _ => SelectedAsset != null);
             SaveAssetCommand = new RelayCommand(_ => SaveAsset());
             CancelCommand = new RelayCommand(_ => CloseDialog());
+            RentOutAssetCommand = new RelayCommand(_ => RentOutAsset());
             
             FilterSubcategory = "Все";
             LoadAssets();
@@ -254,11 +256,13 @@ namespace ForVlad.ViewModels
                 PurchasePrice = 0,
                 ResidualValue = 0,
                 MonthlyRentalRate = 0,
+                HourlyRate = 1000, // Значение по умолчанию для соблюдения ограничения CHECK > 0
+                DailyRate = 8000, // Значение по умолчанию для соблюдения ограничения CHECK > 0
                 IsAvailable = true,
                 CreatedDate = DateTime.Now,
                 IsDeleted = false
             };
-            
+
             UpdateDialogSubcategories();
             DialogTitle = "Новая техника";
             IsDialogOpen = true;
@@ -300,6 +304,8 @@ namespace ForVlad.ViewModels
                 PurchasePrice = source.PurchasePrice,
                 ResidualValue = source.ResidualValue,
                 MonthlyRentalRate = source.MonthlyRentalRate,
+                HourlyRate = source.HourlyRate,
+                DailyRate = source.DailyRate,
                 IsAvailable = source.IsAvailable,
                 Description = source.Description,
                 // REFACTOR: Заменено Notes на Description
@@ -443,6 +449,98 @@ namespace ForVlad.ViewModels
             IsDialogOpen = false;
             EditingAsset = null;
             DialogSubcategories.Clear();
+        }
+
+        private void RentOutAsset()
+        {
+            try
+            {
+                // Проверяем выбранную технику напрямую из DataGrid
+                if (FilteredAssets == null || !FilteredAssets.Any())
+                {
+                    MessageBox.Show("Список техники пуст. Добавьте технику сначала.",
+                        "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Получаем выбранную технику через backing field, чтобы избежать вызова геттера
+                Asset selectedAsset = null;
+                try
+                {
+                    selectedAsset = _selectedAsset;
+                }
+                catch
+                {
+                    selectedAsset = null;
+                }
+
+                if (selectedAsset == null)
+                {
+                    MessageBox.Show("Выберите технику из списка для сдачи в аренду",
+                        "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Создаем новый договор с выбранной техникой
+                var counterparties = _dataService.GetCounterparties();
+                if (counterparties == null || !counterparties.Any())
+                {
+                    MessageBox.Show("Сначала создайте контрагента для договора аренды",
+                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var defaultCounterpartyId = counterparties.First().Id;
+
+                var contract = new Contract
+                {
+                    ContractNumber = _dataService.GenerateContractNumber(ContractType.Rental),
+                    ContractType = ContractType.Rental,
+                    Status = ContractStatus.Draft,
+                    CounterpartyId = defaultCounterpartyId,
+                    SignedDate = DateTime.Now,
+                    StartDate = DateTime.Now,
+                    EndDate = DateTime.Now.AddMonths(1),
+                    DurationMonths = 1,
+                    TotalAmount = selectedAsset.MonthlyRentalRate > 0 ? selectedAsset.MonthlyRentalRate : selectedAsset.DailyRate * 30,
+                    MonthlyPayment = selectedAsset.MonthlyRentalRate > 0 ? selectedAsset.MonthlyRentalRate : selectedAsset.DailyRate * 30,
+                    CreatedDate = DateTime.Now,
+                    IsDeleted = false
+                };
+
+                _dataService.SaveContract(contract);
+
+                // Добавляем спецификацию с выбранной техникой
+                var specification = new ContractSpecification
+                {
+                    ContractId = contract.Id,
+                    AssetId = selectedAsset.Id,
+                    Quantity = 1,
+                    UnitPrice = selectedAsset.MonthlyRentalRate > 0 ? selectedAsset.MonthlyRentalRate : selectedAsset.DailyRate * 30,
+                    PeriodType = PeriodType.Month,
+                    CreatedDate = DateTime.Now,
+                    IsDeleted = false
+                };
+
+                _dataService.SaveSpecification(specification);
+
+                // Отмечаем технику как недоступную
+                selectedAsset.IsAvailable = false;
+                selectedAsset.ModifiedDate = DateTime.Now;
+                _dataService.SaveAsset(selectedAsset);
+
+                LoadAssets();
+
+                MessageBox.Show(
+                    $"Договор {contract.ContractNumber} создан с техникой {selectedAsset.Name}.\n" +
+                    "Перейдите в раздел 'Договоры' для редактирования деталей и создания графика платежей.",
+                    "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при создании договора: {ex.Message}\n\nStack Trace: {ex.StackTrace}",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

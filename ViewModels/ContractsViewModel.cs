@@ -126,6 +126,9 @@ namespace ForVlad.ViewModels
         public ICommand CancelCommand { get; }
         public ICommand ClearStatusFilterCommand { get; }
         public ICommand EditContractFromRowCommand { get; }
+        public ICommand ViewContractDetailsCommand { get; }
+
+        private Action<int> _navigateToContractDetails;
         
         private int? _filterCounterpartyId;
         
@@ -161,6 +164,7 @@ namespace ForVlad.ViewModels
             CancelCommand = new RelayCommand(_ => CloseDialog());
             ClearStatusFilterCommand = new RelayCommand(_ => ClearStatusFilter());
             EditContractFromRowCommand = new RelayCommand(OpenEditFromRow);
+            ViewContractDetailsCommand = new RelayCommand(_ => ViewContractDetails(), _ => SelectedContract != null);
             
             LoadContracts();
             LoadCounterparties();
@@ -177,7 +181,20 @@ namespace ForVlad.ViewModels
         {
             _filterCounterpartyId = null;
         }
-        
+
+        public void SetNavigateToContractDetails(Action<int> navigateToContractDetails)
+        {
+            _navigateToContractDetails = navigateToContractDetails;
+        }
+
+        private void ViewContractDetails()
+        {
+            if (SelectedContract != null && _navigateToContractDetails != null)
+            {
+                _navigateToContractDetails(SelectedContract.Id);
+            }
+        }
+
         private void OpenEditFromRow(object parameter)
         {
             if (parameter is Contract contract)
