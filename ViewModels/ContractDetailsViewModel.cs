@@ -12,7 +12,15 @@ namespace ForVlad.ViewModels
     {
         private readonly ISimpleDataService _dataService;
         private readonly int _contractId;
-        
+
+        // Информация о договоре
+        private Contract _contract;
+        public Contract Contract
+        {
+            get => _contract;
+            set => SetField(ref _contract, value);
+        }
+
         // Спецификации
         private ObservableCollection<ContractSpecification> _specifications;
         public ObservableCollection<ContractSpecification> Specifications
@@ -197,6 +205,14 @@ namespace ForVlad.ViewModels
         
         private void LoadData()
         {
+            // Загружаем информацию о договоре
+            Contract = _dataService.GetContract(_contractId);
+            if (Contract != null)
+            {
+                var counterparty = _dataService.GetCounterparty(Contract.CounterpartyId);
+                Contract.CounterpartyDisplayName = counterparty?.Name ?? "—";
+            }
+
             // Загружаем технику
             var assets = _dataService.GetAssets();
             Assets.Clear();
@@ -204,7 +220,7 @@ namespace ForVlad.ViewModels
             {
                 Assets.Add(asset);
             }
-            
+
             // Загружаем спецификации
             var specs = _dataService.GetSpecifications(_contractId);
             Specifications.Clear();
@@ -213,7 +229,7 @@ namespace ForVlad.ViewModels
                 spec.Asset = Assets.FirstOrDefault(a => a.Id == spec.AssetId);
                 Specifications.Add(spec);
             }
-            
+
             // Загружаем платежи
             var payments = _dataService.GetPaymentSchedules(_contractId);
             Payments.Clear();
@@ -221,7 +237,7 @@ namespace ForVlad.ViewModels
             {
                 Payments.Add(payment);
             }
-            
+
             UpdateTotals();
         }
         
@@ -272,28 +288,52 @@ namespace ForVlad.ViewModels
         private void SaveSpecification()
         {
             if (EditingSpecification == null) return;
-            
+
             if (EditingSpecification.AssetId <= 0)
             {
                 MessageBox.Show("Выберите технику", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            
+
             if (EditingSpecification.Quantity <= 0)
             {
                 MessageBox.Show("Количество должно быть больше 0", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            
+
             if (EditingSpecification.UnitPrice <= 0)
             {
                 MessageBox.Show("Цена должна быть больше 0", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            
+
             try
             {
+                // Проверяем доступность техники на период договора
+                var contract = _dataService.GetContract(_contractId);
+                if (contract != null)
+                {
+                    int? excludeContractId = EditingSpecification.Id > 0 ? _contractId : (int?)null;
+                    var isAvailable = _dataService.CheckAssetAvailability(
+                        EditingSpecification.AssetId,
+                        contract.StartDate,
+                        contract.EndDate ?? DateTime.MaxValue,
+                        excludeContractId);
+
+                    if (!isAvailable)
+                    {
+                        MessageBox.Show(
+                            "Эта техника недоступна для выбранного периода. Возможно, она уже используется в другом договоре.",
+                            "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                }
+
                 _dataService.SaveSpecification(EditingSpecification);
+
+                // Обновляем доступность техники
+                UpdateAssetAvailability(EditingSpecification.AssetId);
+
                 CloseSpecificationDialog();
                 LoadData();
                 MessageBox.Show("Позиция сохранена", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -303,21 +343,55 @@ namespace ForVlad.ViewModels
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private void UpdateAssetAvailability(int assetId)
+        {
+            try
+            {
+                var asset = _dataService.GetAsset(assetId);
+                if (asset == null) return;
+
+                // Проверяем, есть ли активные спецификации для этой техники
+                var hasActiveSpecs = _dataService.HasActiveContractSpecifications(assetId);
+
+                // Обновляем IsAvailable на основе наличия активных спецификаций
+                asset.IsAvailable = !hasActiveSpecs;
+                asset.ModifiedDate = DateTime.Now;
+                _dataService.SaveAsset(asset);
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку, но не прерываем процесс
+                System.Diagnostics.Debug.WriteLine($"Ошибка при обновлении доступности техники: {ex.Message}");
+            }
+        }
         
         private void DeleteSpecification()
         {
             if (SelectedSpecification == null) return;
-            
+
             var result = MessageBox.Show(
                 $"Удалить позицию?",
                 "Подтверждение",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
-            
+
             if (result == MessageBoxResult.Yes)
             {
-                _dataService.DeleteSpecification(SelectedSpecification.Id);
-                LoadData();
+                try
+                {
+                    var assetId = SelectedSpecification.AssetId;
+                    _dataService.DeleteSpecification(SelectedSpecification.Id);
+
+                    // Обновляем доступность техники
+                    UpdateAssetAvailability(assetId);
+
+                    LoadData();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
         
@@ -345,13 +419,12 @@ namespace ForVlad.ViewModels
             {
                 try
                 {
+                    var assetId = SelectedSpecification.AssetId;
                     // Удаляем спецификацию
                     _dataService.DeleteSpecification(SelectedSpecification.Id);
 
-                    // Делаем технику доступной
-                    asset.IsAvailable = true;
-                    asset.ModifiedDate = DateTime.Now;
-                    _dataService.SaveAsset(asset);
+                    // Обновляем доступность техники автоматически
+                    UpdateAssetAvailability(assetId);
 
                     LoadData();
                     MessageBox.Show($"Техника {asset.Name} возвращена и теперь доступна для аренды.",

@@ -65,13 +65,7 @@
                         Command="{Binding ToggleAvailabilityCommand}"
                         ToolTip="Быстро переключить доступность без открытия формы"/>
 
-                <Button Content="📋 Сдать в аренду"
-                        Background="#E67E22"
-                        Foreground="White"
-                        Command="{Binding RentOutAssetCommand}"
-                        ToolTip="Создать договор аренды с выбранной техникой"/>
-
-                <Button Content="🔄 Обновить"
+                <Button Content=" Обновить"
                         Background="#95A5A6"
                         Foreground="White"
                         Command="{Binding RefreshCommand}"
@@ -130,7 +124,7 @@
                     <TextBlock Text="{Binding AvailableAssetsCount, StringFormat=Доступно: {0}}" Margin="0,0,16,0" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding BusyAssetsCount, StringFormat=Занято: {0}}" VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock Text="💡 Workflow: 1) Добавьте технику → 2) Нажмите 'Сдать в аренду' для создания договора → 3) Редактируйте договор в разделе 'Договоры' → 4) Загрузка отображается в отчетах"
+                <TextBlock Text="💡 Для сдачи техники в аренду создайте договор в разделе 'Договоры' и добавьте технику в спецификацию. Доступность управляется автоматически на основе активных договоров."
                            FontSize="11" Foreground="#7F8C8D" Margin="0,4,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>

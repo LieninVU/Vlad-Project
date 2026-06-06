@@ -67,7 +67,7 @@ namespace ForVlad.ViewModels
             get => _isDialogOpen;
             set => SetField(ref _isDialogOpen, value);
         }
-        
+
         private Contract _editingContract;
         public Contract EditingContract
         {
@@ -77,6 +77,30 @@ namespace ForVlad.ViewModels
                 if (SetField(ref _editingContract, value))
                 {
                     OnPropertyChanged(nameof(DurationDisplay));
+                }
+            }
+        }
+
+        // Справочники для диалога
+        public ObservableCollection<Asset> Assets { get; }
+        public ObservableCollection<PeriodType> PeriodTypes { get; }
+
+        // Выбранная техника в диалоге
+        private Asset _selectedAsset;
+        public Asset SelectedAsset
+        {
+            get => _selectedAsset;
+            set
+            {
+                if (SetField(ref _selectedAsset, value))
+                {
+                    // Автоматически обновляем цену при выборе техники
+                    if (value != null && EditingContract != null)
+                    {
+                        EditingContract.TotalAmount = value.MonthlyRentalRate > 0 ? value.MonthlyRentalRate : value.DailyRate * 30;
+                        EditingContract.MonthlyPayment = EditingContract.TotalAmount;
+                        OnPropertyChanged(nameof(EditingContract));
+                    }
                 }
             }
         }
@@ -141,20 +165,26 @@ namespace ForVlad.ViewModels
             Statuses = new ObservableCollection<ContractStatus>();
             StatusFilterOptions = new ObservableCollection<ContractStatus?>();
             ContractTypes = new ObservableCollection<ContractType>();
-            
+            Assets = new ObservableCollection<Asset>();
+            PeriodTypes = new ObservableCollection<PeriodType>();
+
             StatusFilterOptions.Add(null);
             foreach (ContractStatus status in Enum.GetValues(typeof(ContractStatus)))
             {
                 Statuses.Add(status);
                 StatusFilterOptions.Add(status);
             }
-            
-            // Заполняем типы договоров
+
             foreach (ContractType type in Enum.GetValues(typeof(ContractType)))
             {
                 ContractTypes.Add(type);
             }
-            
+
+            foreach (PeriodType type in Enum.GetValues(typeof(PeriodType)))
+            {
+                PeriodTypes.Add(type);
+            }
+
             // Инициализация команд
             AddContractCommand = new RelayCommand(_ => OpenAddDialog());
             EditContractCommand = new RelayCommand(_ => OpenEditDialog(), _ => SelectedContract != null);
@@ -244,6 +274,13 @@ namespace ForVlad.ViewModels
             {
                 Counterparties.Add(counterparty);
             }
+
+            var assets = _dataService.GetAssets();
+            Assets.Clear();
+            foreach (var asset in assets)
+            {
+                Assets.Add(asset);
+            }
         }
         
         public void LoadContracts()
@@ -305,6 +342,7 @@ namespace ForVlad.ViewModels
                 CreatedDate = DateTime.Now,
                 IsDeleted = false
             };
+            SelectedAsset = null;
             DialogTitle = "Новый договор";
             IsDialogOpen = true;
         }
@@ -312,7 +350,7 @@ namespace ForVlad.ViewModels
         private void OpenEditDialog()
         {
             if (SelectedContract == null) return;
-            
+
             // Создаем копию для редактирования
             EditingContract = new Contract
             {
@@ -335,7 +373,19 @@ namespace ForVlad.ViewModels
                 CreatedDate = SelectedContract.CreatedDate,
                 IsDeleted = SelectedContract.IsDeleted
             };
-            
+
+            // Загружаем существующую спецификацию для выбранной техники
+            var specs = _dataService.GetSpecifications(SelectedContract.Id);
+            if (specs.Count > 0)
+            {
+                var firstSpec = specs[0];
+                SelectedAsset = Assets.FirstOrDefault(a => a.Id == firstSpec.AssetId);
+            }
+            else
+            {
+                SelectedAsset = null;
+            }
+
             DialogTitle = "Редактирование договора";
             IsDialogOpen = true;
         }
@@ -396,14 +446,67 @@ namespace ForVlad.ViewModels
             
             // Рассчитываем сумму с НДС
             EditingContract.TotalWithVAT = EditingContract.TotalAmount + EditingContract.VATAmount;
-            
+
             try
             {
-                // Сохраняем
+                // Если выбрана техника, сначала проверяем доступность
+                if (SelectedAsset != null)
+                {
+                    // Проверяем доступность техники на период договора
+                    var isAvailable = _dataService.CheckAssetAvailability(
+                        SelectedAsset.Id,
+                        EditingContract.StartDate,
+                        EditingContract.EndDate ?? DateTime.MaxValue,
+                        null);
+
+                    if (!isAvailable)
+                    {
+                        MessageBox.Show(
+                            "Эта техника недоступна для выбранного периода. Возможно, она уже используется в другом договоре.",
+                            "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                }
+
+                // Сохраняем договор
                 _dataService.SaveContract(EditingContract);
+
+                // Если выбрана техника, создаем спецификацию
+                if (SelectedAsset != null)
+                {
+                    var specification = new ContractSpecification
+                    {
+                        ContractId = EditingContract.Id,
+                        AssetId = SelectedAsset.Id,
+                        Quantity = 1,
+                        UnitPrice = SelectedAsset.MonthlyRentalRate > 0 ? SelectedAsset.MonthlyRentalRate : SelectedAsset.DailyRate * 30,
+                        PeriodType = PeriodType.Month
+                    };
+
+                    try
+                    {
+                        _dataService.SaveSpecification(specification);
+                        System.Diagnostics.Debug.WriteLine($"Спецификация сохранена: ContractId={specification.ContractId}, AssetId={specification.AssetId}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Ошибка при сохранении спецификации: {ex.Message}");
+                        throw;
+                    }
+
+                    // Обновляем доступность техники
+                    var asset = _dataService.GetAsset(SelectedAsset.Id);
+                    if (asset != null)
+                    {
+                        asset.IsAvailable = false;
+                        asset.ModifiedDate = DateTime.Now;
+                        _dataService.SaveAsset(asset);
+                    }
+                }
+
                 CloseDialog();
                 LoadContracts();
-                
+
                 MessageBox.Show("Договор успешно сохранен", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (InvalidOperationException ex)
@@ -435,6 +538,7 @@ namespace ForVlad.ViewModels
         {
             IsDialogOpen = false;
             EditingContract = null;
+            SelectedAsset = null;
         }
         
         private void ClearStatusFilter()

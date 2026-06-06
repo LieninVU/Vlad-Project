@@ -661,18 +661,33 @@ namespace ForVlad.Data
             command.Parameters.AddWithValue("@VehicleBrand", string.IsNullOrEmpty(vehicleBrand) ? (object)DBNull.Value : vehicleBrand);
             command.Parameters.AddWithValue("@VehicleModel", string.IsNullOrEmpty(vehicleModel) ? (object)DBNull.Value : vehicleModel);
             command.Parameters.AddWithValue("@VinNumber", string.IsNullOrEmpty(asset.SerialNumber) ? (object)DBNull.Value : asset.SerialNumber);
-            command.Parameters.AddWithValue("@ManufactureYear", asset.YearOfManufacture ?? (object)DBNull.Value);
+            if (asset.YearOfManufacture.HasValue)
+                command.Parameters.AddWithValue("@ManufactureYear", asset.YearOfManufacture.Value);
+            else
+                command.Parameters.AddWithValue("@ManufactureYear", DBNull.Value);
             command.Parameters.AddWithValue("@HourlyRate", hourlyRate);
             command.Parameters.AddWithValue("@DailyRate", dailyRate);
             command.Parameters.AddWithValue("@AssetCondition", (int)asset.AssetCondition);
             command.Parameters.AddWithValue("@IsAvailable", asset.IsAvailable);
             command.Parameters.AddWithValue("@Description", string.IsNullOrEmpty(asset.Description) ? (object)DBNull.Value : asset.Description);
-            command.Parameters.AddWithValue("@VehicleSubcategory", asset.VehicleSubcategory.HasValue ? (object)(int)asset.VehicleSubcategory.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@EquipmentSubcategory", asset.EquipmentSubcategory.HasValue ? (object)(int)asset.EquipmentSubcategory.Value : DBNull.Value);
+            if (asset.VehicleSubcategory.HasValue)
+                command.Parameters.AddWithValue("@VehicleSubcategory", (int)asset.VehicleSubcategory.Value);
+            else
+                command.Parameters.AddWithValue("@VehicleSubcategory", DBNull.Value);
+            if (asset.EquipmentSubcategory.HasValue)
+                command.Parameters.AddWithValue("@EquipmentSubcategory", (int)asset.EquipmentSubcategory.Value);
+            else
+                command.Parameters.AddWithValue("@EquipmentSubcategory", DBNull.Value);
             command.Parameters.AddWithValue("@EquipmentType", string.IsNullOrEmpty(asset.EquipmentType) ? (object)DBNull.Value : asset.EquipmentType);
-            command.Parameters.AddWithValue("@EnginePower", asset.EnginePower ?? (object)DBNull.Value);
+            if (asset.EnginePower.HasValue)
+                command.Parameters.AddWithValue("@EnginePower", asset.EnginePower.Value);
+            else
+                command.Parameters.AddWithValue("@EnginePower", DBNull.Value);
             command.Parameters.AddWithValue("@RegistrationNumber", string.IsNullOrEmpty(asset.RegistrationNumber) ? (object)DBNull.Value : asset.RegistrationNumber);
-            command.Parameters.AddWithValue("@Weight", asset.Weight ?? (object)DBNull.Value);
+            if (asset.Weight.HasValue)
+                command.Parameters.AddWithValue("@Weight", asset.Weight.Value);
+            else
+                command.Parameters.AddWithValue("@Weight", DBNull.Value);
             command.Parameters.AddWithValue("@PowerRequirements", string.IsNullOrEmpty(asset.PowerRequirements) ? (object)DBNull.Value : asset.PowerRequirements);
             command.Parameters.AddWithValue("@CreatedAt", asset.CreatedDate);
         }
@@ -948,7 +963,10 @@ namespace ForVlad.Data
             command.Parameters.AddWithValue("@CounterpartyId", contract.CounterpartyId);
             command.Parameters.AddWithValue("@SignedDate", contract.SignedDate);
             command.Parameters.AddWithValue("@StartDate", contract.StartDate);
-            command.Parameters.AddWithValue("@EndDate", contract.EndDate ?? (object)DBNull.Value);
+            if (contract.EndDate.HasValue)
+                command.Parameters.AddWithValue("@EndDate", contract.EndDate.Value);
+            else
+                command.Parameters.AddWithValue("@EndDate", DBNull.Value);
             command.Parameters.AddWithValue("@TotalAmount", contract.TotalAmount);
             command.Parameters.AddWithValue("@PaymentTerms", string.IsNullOrEmpty(contract.PaymentTerms) ? (object)DBNull.Value : contract.PaymentTerms);
             command.Parameters.AddWithValue("@Notes", string.IsNullOrEmpty(contract.Notes) ? (object)DBNull.Value : contract.Notes);
@@ -1126,8 +1144,11 @@ namespace ForVlad.Data
                 {
                     command.Parameters.AddWithValue("@Id", paymentId);
                     command.Parameters.AddWithValue("@IsPaid", true);
-                    command.Parameters.AddWithValue("@PaidDate", paymentDate ?? (object)DateTime.Now);
-                    
+                    if (paymentDate.HasValue)
+                        command.Parameters.AddWithValue("@PaidDate", paymentDate.Value);
+                    else
+                        command.Parameters.AddWithValue("@PaidDate", DateTime.Now);
+
                     connection.Open();
                     command.ExecuteNonQuery();
                 }
@@ -1323,26 +1344,62 @@ namespace ForVlad.Data
 
             foreach (var asset in assets)
             {
+                // Получаем спецификации для этой техники
                 var specs = GetSpecifications().Where(s => s.AssetId == asset.Id).ToList();
                 int daysRented = 0;
                 decimal revenue = 0;
+                int activeContractsCount = 0;
 
                 foreach (var spec in specs)
                 {
                     var contract = GetContract(spec.ContractId);
-                    if (contract == null || !ReportCalculationService.IsOperatingContractStatus(contract.Status))
-                        continue;
-                    if (!ReportCalculationService.ContractOverlapsPeriod(contract, periodStart, periodEnd))
+                    if (contract == null)
                         continue;
 
-                    var contractEnd = contract.EndDate?.Date ?? periodEnd.Date;
-                    var overlap = ReportCalculationService.OverlapDays(
-                        contract.StartDate, contractEnd, periodStart, periodEnd);
+                    // Учитываем только активные договоры
+                    if (!IsOperatingContractStatus(contract.Status))
+                        continue;
 
-                    daysRented += overlap;
+                    // Проверяем пересечение периода договора с отчетным периодом
+                    var contractStart = contract.StartDate.Date;
+                    var contractEnd = contract.EndDate?.Date ?? DateTime.MaxValue.Date;
 
-                    var contractDays = Math.Max(1, (int)(contractEnd - contract.StartDate.Date).TotalDays + 1);
-                    revenue += spec.TotalPrice * overlap / (decimal)contractDays;
+                    // Если договор не пересекается с отчетным периодом, пропускаем
+                    if (contractEnd < periodStart.Date || contractStart > periodEnd.Date)
+                        continue;
+
+                    activeContractsCount++;
+
+                    // Вычисляем пересечение периодов
+                    var overlapStart = contractStart > periodStart.Date ? contractStart : periodStart.Date;
+                    var overlapEnd = contractEnd < periodEnd.Date ? contractEnd : periodEnd.Date;
+                    var overlapDays = Math.Max(0, (overlapEnd - overlapStart).Days + 1);
+
+                    daysRented += overlapDays;
+
+                    // Вычисляем доход на основе спецификации
+                    // Если PeriodType = Month, то UnitPrice - это цена за месяц
+                    // Если PeriodType = Day, то UnitPrice - это цена за день
+                    // Если PeriodType = Hour, то UnitPrice - это цена за час (8 часов в день)
+                    decimal dailyRate = 0;
+                    switch (spec.PeriodType)
+                    {
+                        case PeriodType.Month:
+                            dailyRate = spec.UnitPrice / 30m; // Приблизительно 30 дней в месяце
+                            break;
+                        case PeriodType.Week:
+                            dailyRate = spec.UnitPrice / 7m; // 7 дней в неделе
+                            break;
+                        case PeriodType.Hour:
+                            dailyRate = spec.UnitPrice * 8m; // 8 часов в день
+                            break;
+                        case PeriodType.Day:
+                        default:
+                            dailyRate = spec.UnitPrice;
+                            break;
+                    }
+
+                    revenue += dailyRate * overlapDays * spec.Quantity;
                 }
 
                 daysRented = Math.Min(daysRented, daysInPeriod);
@@ -1353,12 +1410,18 @@ namespace ForVlad.Data
                 {
                     alert = "Нет договоров (создайте договор для загрузки)";
                 }
+                else if (activeContractsCount == 0)
+                {
+                    alert = "Нет активных договоров";
+                }
                 else if (rate < 30 && daysInPeriod >= 7)
                 {
                     alert = "Низкая загрузка (< 30%)";
                 }
-                if (asset.IsAvailable && rate > 80)
-                    alert = string.IsNullOrEmpty(alert) ? "Высокая загрузка" : alert;
+                if (!asset.IsAvailable && rate > 0)
+                {
+                    alert = string.IsNullOrEmpty(alert) ? "В аренде" : alert;
+                }
 
                 rows.Add(new AssetUtilizationRow
                 {
@@ -1378,6 +1441,13 @@ namespace ForVlad.Data
             }
 
             return rows.OrderByDescending(r => r.UtilizationRate).ToList();
+        }
+
+        private bool IsOperatingContractStatus(ContractStatus status)
+        {
+            // ContractStatus: Draft=0, Signed=1, Active=2, Suspended=3, Completed=4, Terminated=5
+            // Активные статусы: Signed, Active, Suspended
+            return status == ContractStatus.Signed || status == ContractStatus.Active || status == ContractStatus.Suspended;
         }
         
         #endregion
@@ -1626,11 +1696,13 @@ namespace ForVlad.Data
                     command.Parameters.AddWithValue("@DueDate", schedule.DueDate);
                     command.Parameters.AddWithValue("@Amount", schedule.Amount);
                     command.Parameters.AddWithValue("@IsPaid", schedule.IsPaid);
-                    command.Parameters.AddWithValue("@PaidDate", 
-                        schedule.PaymentDate ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@PaymentMethod", 
+                    if (schedule.PaymentDate.HasValue)
+                        command.Parameters.AddWithValue("@PaidDate", schedule.PaymentDate.Value);
+                    else
+                        command.Parameters.AddWithValue("@PaidDate", DBNull.Value);
+                    command.Parameters.AddWithValue("@PaymentMethod",
                         string.IsNullOrEmpty(schedule.PaymentMethod) ? (object)DBNull.Value : int.Parse(schedule.PaymentMethod));
-                    command.Parameters.AddWithValue("@PaymentReference", 
+                    command.Parameters.AddWithValue("@PaymentReference",
                         string.IsNullOrEmpty(schedule.Notes) ? (object)DBNull.Value : schedule.Notes);
                     connection.Open();
                     command.ExecuteNonQuery();
@@ -1672,16 +1744,18 @@ namespace ForVlad.Data
         {
             command.Parameters.AddWithValue("@ContractId", schedule.ContractId);
             command.Parameters.AddWithValue("@PaymentNumber", paymentNumber);
-            command.Parameters.AddWithValue("@Description", 
+            command.Parameters.AddWithValue("@Description",
                 string.IsNullOrEmpty(schedule.Description) ? (object)DBNull.Value : schedule.Description);
             command.Parameters.AddWithValue("@DueDate", schedule.DueDate);
             command.Parameters.AddWithValue("@Amount", schedule.Amount);
             command.Parameters.AddWithValue("@IsPaid", schedule.IsPaid);
-            command.Parameters.AddWithValue("@PaidDate", 
-                schedule.PaymentDate ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@PaymentMethod", 
+            if (schedule.PaymentDate.HasValue)
+                command.Parameters.AddWithValue("@PaidDate", schedule.PaymentDate.Value);
+            else
+                command.Parameters.AddWithValue("@PaidDate", DBNull.Value);
+            command.Parameters.AddWithValue("@PaymentMethod",
                 string.IsNullOrEmpty(schedule.PaymentMethod) ? (object)DBNull.Value : int.Parse(schedule.PaymentMethod));
-            command.Parameters.AddWithValue("@PaymentReference", 
+            command.Parameters.AddWithValue("@PaymentReference",
                 string.IsNullOrEmpty(schedule.Notes) ? (object)DBNull.Value : schedule.Notes);
         }
         
@@ -1789,6 +1863,65 @@ namespace ForVlad.Data
             InitializeTestData();
         }
         
+        public bool CheckAssetAvailability(int assetId, DateTime startDate, DateTime endDate, int? excludeContractId = null)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+
+                // Проверяем, есть ли активные спецификации для этой техники в указанный период
+                // ContractStatus: Draft=0, Signed=1, Active=2, Suspended=3, Completed=4, Terminated=5
+                string sql = @"
+                    SELECT COUNT(*)
+                    FROM ContractSpecifications cs
+                    INNER JOIN Contracts c ON cs.ContractId = c.Id
+                    WHERE cs.AssetId = @AssetId
+                        AND c.ContractStatus IN (1, 2, 3) -- Signed, Active, Suspended
+                        AND (@ExcludeContractId IS NULL OR c.Id != @ExcludeContractId)
+                        AND c.StartDate <= @EndDate
+                        AND (c.EndDate IS NULL OR c.EndDate >= @StartDate)";
+
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@AssetId", assetId);
+                    command.Parameters.AddWithValue("@StartDate", startDate);
+                    command.Parameters.AddWithValue("@EndDate", endDate);
+                    if (excludeContractId.HasValue)
+                        command.Parameters.AddWithValue("@ExcludeContractId", excludeContractId.Value);
+                    else
+                        command.Parameters.AddWithValue("@ExcludeContractId", DBNull.Value);
+
+                    int count = Convert.ToInt32(command.ExecuteScalar());
+                    return count == 0; // Доступна, если нет пересечений
+                }
+            }
+        }
+
+        public bool HasActiveContractSpecifications(int assetId)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+
+                // ContractStatus: Draft=0, Signed=1, Active=2, Suspended=3, Completed=4, Terminated=5
+                string sql = @"
+                    SELECT COUNT(*)
+                    FROM ContractSpecifications cs
+                    INNER JOIN Contracts c ON cs.ContractId = c.Id
+                    WHERE cs.AssetId = @AssetId
+                        AND c.ContractStatus IN (1, 2, 3) -- Signed, Active, Suspended
+                        AND (c.EndDate IS NULL OR c.EndDate >= GETDATE())";
+
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@AssetId", assetId);
+
+                    int count = Convert.ToInt32(command.ExecuteScalar());
+                    return count > 0;
+                }
+            }
+        }
+
         public bool TestConnection(out string errorMessage)
         {
             try

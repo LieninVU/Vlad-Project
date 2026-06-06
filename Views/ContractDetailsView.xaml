@@ -24,15 +24,31 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header with back button -->
+        <!-- Header with back button and contract info -->
         <Border Grid.Row="0" Background="#F8F9FA" Padding="10" Margin="0,0,0,8">
-            <StackPanel Orientation="Horizontal">
-                <Button Content="← Назад к договорам"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="← Назад к договорам"
                         Background="#95A5A6"
                         Foreground="White"
                         Command="{Binding BackCommand}"
-                        Padding="10,5"/>
-            </StackPanel>
+                        Padding="10,5"
+                        Margin="0,0,10,0"/>
+                <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Contract.ContractNumber}" FontWeight="Bold" FontSize="16"/>
+                    <TextBlock Text="{Binding Contract.CounterpartyDisplayName}" FontSize="12" Foreground="#7F8C8D"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding Contract.StartDate, StringFormat=dd.MM.yyyy}" FontSize="11" Foreground="#7F8C8D"/>
+                        <TextBlock Text=" - " FontSize="11" Foreground="#7F8C8D"/>
+                        <TextBlock Text="{Binding Contract.EndDate, StringFormat=dd.MM.yyyy}" FontSize="11" Foreground="#7F8C8D"/>
+                        <TextBlock Text=" | " FontSize="11" Foreground="#7F8C8D"/>
+                        <TextBlock Text="{Binding Contract.TotalAmount, StringFormat={}{0:N2} руб.}" FontSize="11" Foreground="#7F8C8D"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
         </Border>
         
         <!-- Specifications Section -->

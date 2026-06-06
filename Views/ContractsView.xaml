@@ -243,6 +243,8 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
                         <!-- Номер договора -->
@@ -294,28 +296,45 @@
                         
                         <!-- Продолжительность (автоматически) -->
                         <TextBlock Grid.Row="7" Grid.Column="0" Text="Продолжительность:" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="7" Grid.Column="1" 
+                        <TextBlock Grid.Row="7" Grid.Column="1"
                                     Text="{Binding DurationDisplay}"
                                     FontWeight="Bold"
                                     Foreground="#2C3E50"
                                     Margin="8"
                                     VerticalAlignment="Center"/>
-                        
+
+                        <!-- Техника (для аренды) -->
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Техника:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="8" Grid.Column="1"
+                                  ItemsSource="{Binding Assets}"
+                                  SelectedItem="{Binding SelectedAsset}"
+                                  Margin="5">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding InventoryNumber}" FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text="{Binding MonthlyRentalRate, StringFormat='Ставка: {0:N2} руб./мес'}" FontSize="11" Foreground="#27AE60"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
                         <!-- Сумма -->
-                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Сумма без НДС:" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="8" Grid.Column="1" 
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Сумма без НДС:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="9" Grid.Column="1"
                                  Text="{Binding EditingContract.TotalAmount, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="5"/>
-                        
+
                         <!-- НДС -->
-                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Сумма НДС:" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="9" Grid.Column="1" 
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Сумма НДС:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="10" Grid.Column="1"
                                  Text="{Binding EditingContract.VATAmount, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="5"/>
-                        
+
                         <!-- Примечания -->
-                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Примечания:" VerticalAlignment="Top" Margin="0,8,0,0"/>
-                        <TextBox Grid.Row="10" Grid.Column="1" 
+                        <TextBlock Grid.Row="11" Grid.Column="0" Text="Примечания:" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                        <TextBox Grid.Row="11" Grid.Column="1"
                                  Text="{Binding EditingContract.Notes, UpdateSourceTrigger=PropertyChanged}"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"

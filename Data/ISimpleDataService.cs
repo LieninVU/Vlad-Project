@@ -47,7 +47,11 @@ namespace ForVlad.Data
         // Отчётность
         List<PaymentReportRow> GetPaymentReport(DateTime? dueFrom, DateTime? dueTo, bool unpaidOnly);
         List<AssetUtilizationRow> GetAssetUtilizationReport(DateTime periodStart, DateTime periodEnd, AssetGroup? assetGroup);
-        
+
+        // Проверка доступности
+        bool CheckAssetAvailability(int assetId, DateTime startDate, DateTime endDate, int? excludeContractId = null);
+        bool HasActiveContractSpecifications(int assetId);
+
         // Утилиты
         void InitializeTestData();
         void ResetDemoData();
