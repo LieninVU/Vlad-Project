@@ -172,6 +172,7 @@
     <Compile Include="Data\SqlDataService.cs" />
     <Compile Include="Data\DataServiceProvider.cs" />
     <Compile Include="Data\SimpleDataService.cs" />
+    <Compile Include="Data\DatabaseConfig.cs" />
     <Compile Include="Services\CsvExportService.cs" />
     <Compile Include="Services\ReportCalculationService.cs" />
     <Compile Include="Services\AuthenticationService.cs" />
