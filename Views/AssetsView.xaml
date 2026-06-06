@@ -31,7 +31,7 @@
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
         <converters:IntToVisibilityInverseConverter x:Key="IntToVisibilityInverseConverter" />
     </UserControl.Resources>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -131,28 +131,29 @@
         
         <!-- Таблица -->
         <Grid Grid.Row="3" x:Name="AssetsTableHost">
-            <DataGrid x:Name="AssetsDataGrid"
-                      ItemsSource="{Binding FilteredAssets}"
-                      SelectedItem="{Binding SelectedAsset, TargetNullValue={x:Null}}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      GridLinesVisibility="None"
-                      RowBackground="#FFFFFF"
-                      AlternatingRowBackground="#F8F9FA"
-                      HeadersVisibility="Column"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      CanUserReorderColumns="False"
-                      CanUserResizeRows="False"
-                      CanUserSortColumns="True"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      MinHeight="200"
-                      MinWidth="900"
-                      Visibility="{Binding HasAssets, Converter={StaticResource IntToVisibilityConverter}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="400">
+                <StackPanel>
+                    <DataGrid x:Name="AssetsDataGrid"
+                              ItemsSource="{Binding FilteredAssets}"
+                              SelectedItem="{Binding SelectedAsset, TargetNullValue={x:Null}}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="None"
+                              RowBackground="#FFFFFF"
+                              AlternatingRowBackground="#F8F9FA"
+                              HeadersVisibility="Column"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserReorderColumns="False"
+                              CanUserResizeRows="False"
+                              CanUserSortColumns="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Disabled"
+                              MinWidth="900"
+                              Visibility="{Binding HasAssets, Converter={StaticResource IntToVisibilityConverter}}">
                     
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Инв. номер" 
@@ -277,6 +278,8 @@
                                HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
         
         <!-- Диалог создания/редактирования -->
@@ -411,7 +414,7 @@
                                     Command="{Binding SaveAssetCommand}"/>
                             
                             <Button Content="Отмена" 
-                                    Background="#95A5A6" 
+                                    Background="#95A5A6"
                                     Foreground="White"
                                     Width="100"
                                     Command="{Binding CancelCommand}"/>

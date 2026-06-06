@@ -33,6 +33,7 @@ namespace ForVlad.Data
         List<PaymentSchedule> GetPaymentSchedules(int? contractId = null);
         List<ContractSpecification> GetSpecifications(int? contractId = null);
         void MarkPaymentPaid(int paymentId, DateTime? paymentDate = null);
+        void MarkPaymentUnpaid(int paymentId);
         
         List<PaymentReportRow> GetPaymentReport(DateTime? dueFrom, DateTime? dueTo, bool unpaidOnly);
         List<AssetUtilizationRow> GetAssetUtilizationReport(DateTime periodStart, DateTime periodEnd, AssetGroup? assetGroup);
@@ -255,12 +256,23 @@ namespace ForVlad.Data
             var payment = _payments.FirstOrDefault(p => p.Id == paymentId && !p.IsDeleted);
             if (payment == null)
                 return;
-            
+
             payment.Status = PaymentStatus.Paid;
             payment.PaymentDate = paymentDate ?? DateTime.Now;
             payment.ModifiedDate = DateTime.Now;
             if (!payment.TotalAmount.HasValue)
                 payment.TotalAmount = payment.Amount + payment.VATAmount;
+        }
+
+        public void MarkPaymentUnpaid(int paymentId)
+        {
+            var payment = _payments.FirstOrDefault(p => p.Id == paymentId && !p.IsDeleted);
+            if (payment == null)
+                return;
+
+            payment.Status = PaymentStatus.Pending;
+            payment.PaymentDate = null;
+            payment.ModifiedDate = DateTime.Now;
         }
 
         public List<PaymentReportRow> GetPaymentReport(DateTime? dueFrom, DateTime? dueTo, bool unpaidOnly)

@@ -70,27 +70,28 @@
         </Border>
         
         <Grid Grid.Row="3">
-            <DataGrid ItemsSource="{Binding FilteredCounterparties}"
-                      SelectedItem="{Binding SelectedCounterparty}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      GridLinesVisibility="None"
-                      RowBackground="#FFFFFF"
-                      AlternatingRowBackground="#F8F9FA"
-                      HeadersVisibility="Column"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      CanUserReorderColumns="False"
-                      CanUserResizeRows="False"
-                      CanUserSortColumns="True"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      MinHeight="200"
-                      MinWidth="900"
-                      Visibility="{Binding HasCounterparties, Converter={StaticResource IntToVisibilityConverter}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="400">
+                <StackPanel>
+                    <DataGrid ItemsSource="{Binding FilteredCounterparties}"
+                              SelectedItem="{Binding SelectedCounterparty}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="None"
+                              RowBackground="#FFFFFF"
+                              AlternatingRowBackground="#F8F9FA"
+                              HeadersVisibility="Column"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserReorderColumns="False"
+                              CanUserResizeRows="False"
+                              CanUserSortColumns="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Disabled"
+                              MinWidth="900"
+                              Visibility="{Binding HasCounterparties, Converter={StaticResource IntToVisibilityConverter}}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="200" MinWidth="150"/>
                     <DataGridTextColumn Header="Тип" Binding="{Binding CounterpartyType}" Width="110" MinWidth="90"/>
@@ -138,7 +139,7 @@
                     </Style>
                 </DataGrid.CellStyle>
             </DataGrid>
-            
+
             <Border Background="#F8F9FA"
                     Visibility="{Binding HasCounterparties, Converter={StaticResource IntToVisibilityInverseConverter}}">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -147,6 +148,8 @@
                     <TextBlock Text="Измените поиск или добавьте нового контрагента" FontSize="12" Foreground="#95A5A6" Margin="0,5,0,0" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
         
         <Border Grid.Row="0" Grid.RowSpan="4" Background="#80000000"

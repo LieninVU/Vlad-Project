@@ -1137,7 +1137,7 @@ namespace ForVlad.Data
                     IsPaid = @IsPaid,
                     PaidDate = @PaidDate
                 WHERE Id = @Id";
-            
+
             using (var connection = new SqlConnection(_connectionString))
             {
                 using (var command = new SqlCommand(sql, connection))
@@ -1148,6 +1148,28 @@ namespace ForVlad.Data
                         command.Parameters.AddWithValue("@PaidDate", paymentDate.Value);
                     else
                         command.Parameters.AddWithValue("@PaidDate", DateTime.Now);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void MarkPaymentUnpaid(int paymentId)
+        {
+            // В БД: IsPaid, PaidDate
+            string sql = @"
+                UPDATE PaymentSchedules SET
+                    IsPaid = @IsPaid,
+                    PaidDate = NULL
+                WHERE Id = @Id";
+
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", paymentId);
+                    command.Parameters.AddWithValue("@IsPaid", false);
 
                     connection.Open();
                     command.ExecuteNonQuery();

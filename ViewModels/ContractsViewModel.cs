@@ -452,12 +452,15 @@ namespace ForVlad.ViewModels
                 // Если выбрана техника, сначала проверяем доступность
                 if (SelectedAsset != null)
                 {
+                    // При редактировании исключаем текущий договор из проверки
+                    var excludeContractId = EditingContract.Id > 0 ? EditingContract.Id : (int?)null;
+
                     // Проверяем доступность техники на период договора
                     var isAvailable = _dataService.CheckAssetAvailability(
                         SelectedAsset.Id,
                         EditingContract.StartDate,
                         EditingContract.EndDate ?? DateTime.MaxValue,
-                        null);
+                        excludeContractId);
 
                     if (!isAvailable)
                     {
@@ -501,6 +504,27 @@ namespace ForVlad.ViewModels
                         asset.IsAvailable = false;
                         asset.ModifiedDate = DateTime.Now;
                         _dataService.SaveAsset(asset);
+                    }
+                }
+
+                // Создаем график платежей для нового договора
+                if (EditingContract.Id > 0 && EditingContract.DurationMonths > 0)
+                {
+                    try
+                    {
+                        var paymentCount = EditingContract.DurationMonths;
+                        var amountPerPayment = EditingContract.TotalAmount / paymentCount;
+                        _dataService.GeneratePaymentSchedule(
+                            EditingContract.Id,
+                            paymentCount,
+                            EditingContract.StartDate,
+                            amountPerPayment);
+                        System.Diagnostics.Debug.WriteLine($"График платежей создан: ContractId={EditingContract.Id}, Payments={paymentCount}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Ошибка при создании графика платежей: {ex.Message}");
+                        // Не прерываем сохранение договора, если график платежей не создан
                     }
                 }
 

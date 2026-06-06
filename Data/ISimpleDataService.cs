@@ -39,6 +39,7 @@ namespace ForVlad.Data
         PaymentSchedule GetPaymentSchedule(int id);
         void SavePaymentSchedule(PaymentSchedule schedule);
         void MarkPaymentPaid(int paymentId, DateTime? paymentDate = null);
+        void MarkPaymentUnpaid(int paymentId);
         void DeletePaymentSchedule(int id);
         
         // Генерация графика платежей

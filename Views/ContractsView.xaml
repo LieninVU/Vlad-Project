@@ -116,27 +116,28 @@
         
         <!-- Список договоров -->
         <Grid Grid.Row="2">
-            <DataGrid ItemsSource="{Binding FilteredContracts}"
-                      SelectedItem="{Binding SelectedContract}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      GridLinesVisibility="None"
-                      RowBackground="#FFFFFF"
-                      AlternatingRowBackground="#F8F9FA"
-                      HeadersVisibility="Column"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      CanUserReorderColumns="False"
-                      CanUserResizeRows="False"
-                      CanUserSortColumns="True"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      MinHeight="200"
-                      MinWidth="950"
-                      Visibility="{Binding HasContracts, Converter={StaticResource IntToVisibilityConverter}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="400">
+                <StackPanel>
+                    <DataGrid ItemsSource="{Binding FilteredContracts}"
+                              SelectedItem="{Binding SelectedContract}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="None"
+                              RowBackground="#FFFFFF"
+                              AlternatingRowBackground="#F8F9FA"
+                              HeadersVisibility="Column"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserReorderColumns="False"
+                              CanUserResizeRows="False"
+                              CanUserSortColumns="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Disabled"
+                              MinWidth="950"
+                              Visibility="{Binding HasContracts, Converter={StaticResource IntToVisibilityConverter}}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Номер" Binding="{Binding ContractNumber}" Width="110" MinWidth="100"/>
                     <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyDisplayName}" Width="180" MinWidth="140"/>
@@ -200,7 +201,7 @@
                     </Style>
                 </DataGrid.CellStyle>
             </DataGrid>
-            
+
             <Border Background="#F8F9FA"
                     Visibility="{Binding HasContracts, Converter={StaticResource IntToVisibilityInverseConverter}}">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -209,6 +210,8 @@
                     <TextBlock Text="Измените фильтры или создайте новый договор" FontSize="12" Foreground="#95A5A6" Margin="0,5,0,0" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
         
         <!-- Диалог создания/редактирования -->
@@ -352,8 +355,8 @@
                                 Margin="0,0,10,0"
                                 Command="{Binding SaveContractCommand}"/>
                         
-                        <Button Content="Отмена" 
-                                Background="#95A5A6" 
+                        <Button Content="Отмена"
+                                Background="#95A5A6"
                                 Foreground="White"
                                 Width="100"
                                 Command="{Binding CancelCommand}"/>

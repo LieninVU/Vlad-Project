@@ -86,15 +86,17 @@
         </Grid>
         
         <Grid Grid.Row="3">
-            <DataGrid ItemsSource="{Binding Rows}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      GridLinesVisibility="None"
-                      AlternatingRowBackground="#F8F9FA"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      MinWidth="900"
-                      Visibility="{Binding HasRows, Converter={StaticResource BoolVisConverter}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="400">
+                <StackPanel>
+                    <DataGrid ItemsSource="{Binding Rows}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="None"
+                              AlternatingRowBackground="#F8F9FA"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Disabled"
+                              MinWidth="900"
+                              Visibility="{Binding HasRows, Converter={StaticResource BoolVisConverter}}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Инв. №" Binding="{Binding InventoryNumber}" Width="90" MinWidth="80"/>
                     <DataGridTextColumn Header="Наименование" Binding="{Binding AssetName}" Width="180" MinWidth="150"/>
@@ -111,6 +113,8 @@
                 <TextBlock Text="Нет данных за выбранный период" HorizontalAlignment="Center" VerticalAlignment="Center"
                            Foreground="#7F8C8D" FontSize="14"/>
             </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>

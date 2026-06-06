@@ -16,7 +16,7 @@
         <converters:IntToVisibilityConverter x:Key="BoolVisConverter" />
         <converters:IntToVisibilityInverseConverter x:Key="BoolVisInverseConverter" />
     </UserControl.Resources>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -75,20 +75,25 @@
                 <Border Grid.Row="1" Background="#F8F9FA" Padding="8">
                     <TextBlock Text="{Binding TotalSpecificationsAmount, StringFormat=Итого: {0:N2} руб.}" FontWeight="Bold"/>
                 </Border>
-                
-                <DataGrid Grid.Row="2" ItemsSource="{Binding Specifications}" SelectedItem="{Binding SelectedSpecification}"
-                          AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None"
-                          Visibility="{Binding HasSpecifications, Converter={StaticResource BoolVisConverter}}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Техника" Binding="{Binding Asset.Name}" Width="200"/>
-                        <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity}" Width="70"/>
-                        <DataGridTextColumn Header="Цена" Binding="{Binding UnitPrice, StringFormat=N2}" Width="100"/>
-                        <DataGridTextColumn Header="Сумма" Binding="{Binding TotalPrice, StringFormat=N2}" Width="100"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-                
-                <TextBlock Grid.Row="2" Text="Добавьте технику для аренды" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#7F8C8D"
-                           Visibility="{Binding HasSpecifications, Converter={StaticResource BoolVisInverseConverter}}"/>
+
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="200">
+                    <StackPanel>
+                        <DataGrid ItemsSource="{Binding Specifications}" SelectedItem="{Binding SelectedSpecification}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None"
+                                  HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled"
+                                  Visibility="{Binding HasSpecifications, Converter={StaticResource BoolVisConverter}}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Техника" Binding="{Binding Asset.Name}" Width="200"/>
+                                <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity}" Width="70"/>
+                                <DataGridTextColumn Header="Цена" Binding="{Binding UnitPrice, StringFormat=N2}" Width="100"/>
+                                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalPrice, StringFormat=N2}" Width="100"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Text="Добавьте технику для аренды" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#7F8C8D"
+                                   Visibility="{Binding HasSpecifications, Converter={StaticResource BoolVisInverseConverter}}"/>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
         </Border>
         
@@ -118,21 +123,26 @@
                         <TextBlock Text="{Binding PaidAmount, StringFormat=Оплачено: {0:N2} руб.}" Foreground="#27AE60"/>
                     </StackPanel>
                 </Border>
-                
-                <DataGrid Grid.Row="2" ItemsSource="{Binding Payments}" SelectedItem="{Binding SelectedPayment}"
-                          AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None"
-                          Visibility="{Binding HasPayments, Converter={StaticResource BoolVisConverter}}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="№" Binding="{Binding PaymentNumber}" Width="40"/>
-                        <DataGridTextColumn Header="Описание" Binding="{Binding Description}" Width="150"/>
-                        <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90"/>
-                        <DataGridTextColumn Header="Сумма" Binding="{Binding Amount, StringFormat=N2}" Width="100"/>
-                        <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-                
-                <TextBlock Grid.Row="2" Text="Сгенерируйте график платежей" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#7F8C8D"
-                           Visibility="{Binding HasPayments, Converter={StaticResource BoolVisInverseConverter}}"/>
+
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="200">
+                    <StackPanel>
+                        <DataGrid ItemsSource="{Binding Payments}" SelectedItem="{Binding SelectedPayment}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None"
+                                  HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled"
+                                  Visibility="{Binding HasPayments, Converter={StaticResource BoolVisConverter}}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="№" Binding="{Binding PaymentNumber}" Width="40"/>
+                                <DataGridTextColumn Header="Описание" Binding="{Binding Description}" Width="150"/>
+                                <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90"/>
+                                <DataGridTextColumn Header="Сумма" Binding="{Binding Amount, StringFormat=N2}" Width="100"/>
+                                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Text="Сгенерируйте график платежей" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#7F8C8D"
+                                   Visibility="{Binding HasPayments, Converter={StaticResource BoolVisInverseConverter}}"/>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
         </Border>
         

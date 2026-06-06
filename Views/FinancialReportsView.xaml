@@ -15,7 +15,7 @@
         <converters:IntToVisibilityConverter x:Key="BoolVisConverter" />
         <converters:IntToVisibilityInverseConverter x:Key="BoolVisInverseConverter" />
     </UserControl.Resources>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -30,8 +30,10 @@
                            FontWeight="SemiBold" Foreground="#2C3E50" Margin="0,0,0,8"/>
                 <StackPanel Orientation="Horizontal">
                     <Button Content="🔄 Обновить" Background="#3498DB" Foreground="White" Command="{Binding RefreshCommand}"/>
-                    <Button Content="✓ Отметить оплату" Background="#2ECC71" Foreground="White"
+                    <Button Content="✓ Платёж" Background="#2ECC71" Foreground="White"
                             Command="{Binding MarkPaidCommand}"/>
+                    <Button Content="✗ Договор не оплачен" Background="#E74C3C" Foreground="White"
+                            Command="{Binding MarkUnpaidCommand}"/>
                     <Button Content="📤 Экспорт CSV" Background="#27AE60" Foreground="White"
                             Command="{Binding ExportToCsvCommand}"/>
                 </StackPanel>
@@ -66,32 +68,36 @@
         </Border>
         
         <Grid Grid.Row="3">
-            <DataGrid ItemsSource="{Binding Payments}"
-                      SelectedItem="{Binding SelectedPayment}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      GridLinesVisibility="None"
-                      AlternatingRowBackground="#F8F9FA"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      MinWidth="900"
-                      Visibility="{Binding HasPayments, Converter={StaticResource BoolVisConverter}}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Договор" Binding="{Binding ContractNumber}" Width="110" MinWidth="100" SortMemberPath="ContractNumber"/>
-                    <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyName}" Width="160" MinWidth="140" SortMemberPath="CounterpartyName"/>
-                    <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90" MinWidth="85" SortMemberPath="DueDate"/>
-                    <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat=N2}" Width="95" MinWidth="90" SortMemberPath="TotalAmount"/>
-                    <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90" MinWidth="80" SortMemberPath="Status"/>
-                    <DataGridTextColumn Header="Просрочка" Binding="{Binding DaysOverdue}" Width="80" MinWidth="70" SortMemberPath="DaysOverdue"/>
-                    <DataGridTextColumn Header="Категория" Binding="{Binding AgingBucket}" Width="90" MinWidth="80" SortMemberPath="AgingBucket"/>
-                    <DataGridTextColumn Header="Оплачен" Binding="{Binding IsPaid}" Width="70" MinWidth="65" SortMemberPath="IsPaid"/>
-                </DataGrid.Columns>
-            </DataGrid>
-            <Border Background="#F8F9FA" Visibility="{Binding HasPayments, Converter={StaticResource BoolVisInverseConverter}}">
-                <TextBlock Text="Нет платежей по выбранным фильтрам" HorizontalAlignment="Center" VerticalAlignment="Center"
-                           Foreground="#7F8C8D" FontSize="14"/>
-            </Border>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="400">
+                <StackPanel>
+                    <DataGrid ItemsSource="{Binding Payments}"
+                              SelectedItem="{Binding SelectedPayment}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="None"
+                              AlternatingRowBackground="#F8F9FA"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Disabled"
+                              MinWidth="900"
+                              Visibility="{Binding HasPayments, Converter={StaticResource BoolVisConverter}}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Договор" Binding="{Binding ContractNumber}" Width="110" MinWidth="100" SortMemberPath="ContractNumber"/>
+                            <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyName}" Width="160" MinWidth="140" SortMemberPath="CounterpartyName"/>
+                            <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90" MinWidth="85" SortMemberPath="DueDate"/>
+                            <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat=N2}" Width="95" MinWidth="90" SortMemberPath="TotalAmount"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90" MinWidth="80" SortMemberPath="Status"/>
+                            <DataGridTextColumn Header="Просрочка" Binding="{Binding DaysOverdue}" Width="80" MinWidth="70" SortMemberPath="DaysOverdue"/>
+                            <DataGridTextColumn Header="Категория" Binding="{Binding AgingBucket}" Width="90" MinWidth="80" SortMemberPath="AgingBucket"/>
+                            <DataGridTextColumn Header="Оплачен" Binding="{Binding IsPaid}" Width="70" MinWidth="65" SortMemberPath="IsPaid"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Border Background="#F8F9FA" Visibility="{Binding HasPayments, Converter={StaticResource BoolVisInverseConverter}}">
+                        <TextBlock Text="Нет платежей по выбранным фильтрам" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="#7F8C8D" FontSize="14"/>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>

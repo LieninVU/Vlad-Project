@@ -83,6 +83,7 @@ namespace ForVlad.ViewModels
         public ICommand ClearFiltersCommand { get; }
         public ICommand ExportToCsvCommand { get; }
         public ICommand MarkPaidCommand { get; }
+        public ICommand MarkUnpaidCommand { get; }
         
         public FinancialReportsViewModel(ISimpleDataService dataService)
         {
@@ -99,6 +100,7 @@ namespace ForVlad.ViewModels
             ClearFiltersCommand = new RelayCommand(_ => ClearFilters());
             ExportToCsvCommand = new RelayCommand(_ => ExportCsv(), _ => HasPayments);
             MarkPaidCommand = new RelayCommand(_ => MarkSelectedPaid(), _ => CanMarkPaid());
+            MarkUnpaidCommand = new RelayCommand(_ => MarkSelectedUnpaid(), _ => CanMarkUnpaid());
 
             LoadReport();
         }
@@ -133,28 +135,72 @@ namespace ForVlad.ViewModels
         
         private bool CanMarkPaid()
         {
-            return SelectedPayment != null && !SelectedPayment.IsPaid;
+            if (_selectedPayment == null)
+                return false;
+
+            try
+            {
+                return !_selectedPayment.IsPaid;
+            }
+            catch
+            {
+                return false;
+            }
         }
-        
+
+        private bool CanMarkUnpaid()
+        {
+            if (_selectedPayment == null)
+                return false;
+
+            try
+            {
+                return _selectedPayment.IsPaid;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void MarkSelectedPaid()
         {
             if (SelectedPayment == null || SelectedPayment.IsPaid)
                 return;
-            
+
             var result = MessageBox.Show(
                 $"Отметить платёж по договору {SelectedPayment.ContractNumber} ({SelectedPayment.TotalAmount:N2} ₽) как оплаченный?",
                 "Подтверждение",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
-            
+
             if (result != MessageBoxResult.Yes)
                 return;
-            
+
             _dataService.MarkPaymentPaid(SelectedPayment.PaymentId);
             LoadReport();
             MessageBox.Show("Платёж отмечен как оплаченный", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        
+
+        private void MarkSelectedUnpaid()
+        {
+            if (SelectedPayment == null || !SelectedPayment.IsPaid)
+                return;
+
+            var result = MessageBox.Show(
+                $"Отметить платёж по договору {SelectedPayment.ContractNumber} ({SelectedPayment.TotalAmount:N2} ₽) как неоплаченный?",
+                "Подтверждение",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            _dataService.MarkPaymentUnpaid(SelectedPayment.PaymentId);
+            LoadReport();
+            MessageBox.Show("Платёж отмечен как неоплаченный", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void ExportCsv()
         {
             var dialog = new SaveFileDialog
