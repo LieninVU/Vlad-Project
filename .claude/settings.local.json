@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(msbuild *)",
+      "PowerShell(vswhere *)",
+      "PowerShell(git add *)",
+      "PowerShell(git commit *)",
+      "PowerShell(dotnet msbuild *)"
+    ]
+  }
+}

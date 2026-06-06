@@ -112,7 +112,65 @@ git clone https://github.com/your-repo/ForVlad.git LeasingSystem
 cd LeasingSystem
 ```
 
-### Шаг 2: Проверка .NET Framework
+### Шаг 2: Настройка подключения к базе данных
+
+⚠️ **ВАЖНО:** Перед первым запуском необходимо настроить подключение к SQL Server!
+
+1. **Создайте файл `.env` из примера:**
+   ```cmd
+   # В папке проекта выполните:
+   copy .env.example .env
+   ```
+
+2. **Откройте файл `.env` в текстовом редакторе** (Блокнот, Notepad++, VS Code)
+
+3. **Укажите параметры вашего SQL Server:**
+   ```env
+   # Имя вашего SQL Server (узнайте в SSMS или выполните sqlcmd -L)
+   SQL_SERVER=(local)\SQLEXPRESS
+   
+   # Имя базы данных (оставьте по умолчанию)
+   SQL_DATABASE=LeasingSystem
+   
+   # Тип аутентификации: Windows или SqlServer
+   SQL_AUTH_TYPE=Windows
+   ```
+
+4. **Примеры конфигураций:**
+
+   **Для SQL Server Express:**
+   ```env
+   SQL_SERVER=(local)\SQLEXPRESS
+   SQL_DATABASE=LeasingSystem
+   SQL_AUTH_TYPE=Windows
+   ```
+   
+   **Для LocalDB:**
+   ```env
+   SQL_SERVER=(localdb)\MSSQLLocalDB
+   SQL_DATABASE=LeasingSystem
+   SQL_AUTH_TYPE=Windows
+   ```
+   
+   **Для удалённого сервера:**
+   ```env
+   SQL_SERVER=192.168.1.100\SQLEXPRESS
+   SQL_DATABASE=LeasingSystem
+   SQL_AUTH_TYPE=Windows
+   ```
+   
+   **С аутентификацией SQL Server:**
+   ```env
+   SQL_SERVER=myserver.database.windows.net
+   SQL_DATABASE=LeasingSystem
+   SQL_AUTH_TYPE=SqlServer
+   SQL_USERNAME=myuser
+   SQL_PASSWORD=mypassword
+   ```
+
+5. **Сохраните файл `.env`**
+
+### Шаг 3: Проверка .NET Framework
 
 **Windows 10/11** обычно уже имеет .NET Framework 4.7.2.
 
@@ -125,17 +183,17 @@ cd LeasingSystem
 - Скачайте с [официального сайта Microsoft](https://dotnet.microsoft.com/download/dotnet-framework/net472)
 - Или установите через Windows Update
 
-### Шаг 3: Установка SQL Server
+### Шаг 4: Установка SQL Server
 
 > ⚠️ **Важно:** Без SQL Server приложение работать не будет!
 
 См. раздел [Установка SQL Server](#-установка-sql-server) ниже.
 
-### Шаг 4: Настройка базы данных
+### Шаг 5: Настройка базы данных
 
 См. раздел [Настройка базы данных](#-настройка-базы-данных) ниже.
 
-### Шаг 5: Сборка и запуск
+### Шаг 6: Сборка и запуск
 
 См. раздел [Сборка и запуск](#-сборка-и-запуск) ниже.
 
@@ -309,9 +367,82 @@ bin\Debug\ForVlad.exe
 
 ## 📊 Конфигурация
 
-### Файл App.config
+### Файл .env (рекомендуется)
 
-Основной файл конфигурации — `App.config`.
+Основной способ настройки — через файл `.env` в корне проекта.
+
+#### Создание файла конфигурации
+
+```cmd
+# Скопируйте пример
+ copy .env.example .env
+
+# Откройте в блокноте
+notepad .env
+```
+
+#### Основные параметры
+
+| Параметр | Описание | По умолчанию |
+|----------|----------|-------------|
+| `SQL_SERVER` | Имя SQL Server | `(local)\SQLEXPRESS` |
+| `SQL_DATABASE` | Имя базы данных | `LeasingSystem` |
+| `SQL_AUTH_TYPE` | Тип аутентификации | `Windows` |
+| `SQL_USERNAME` | Логин (если SQL Auth) | - |
+| `SQL_PASSWORD` | Пароль (если SQL Auth) | - |
+| `SQL_TRUST_CERTIFICATE` | Доверять сертификату | `true` |
+| `DB_MODE` | Режим работы | `Production` |
+
+#### Полный пример .env файла
+
+```env
+# ============================================
+# Подключение к SQL Server
+# ============================================
+
+# Имя сервера (узнайте через: sqlcmd -L)
+SQL_SERVER=(local)\SQLEXPRESS
+
+# Имя базы данных
+SQL_DATABASE=LeasingSystem
+
+# Тип аутентификации: Windows или SqlServer
+SQL_AUTH_TYPE=Windows
+
+# Для SQL Server аутентификации (если используется)
+# SQL_USERNAME=sa
+# SQL_PASSWORD=your_password
+
+# ============================================
+# Дополнительные параметры
+# ============================================
+
+# Таймаут подключения (секунды)
+SQL_CONNECTION_TIMEOUT=30
+
+# Доверять сертификату сервера
+SQL_TRUST_CERTIFICATE=true
+
+# Режим работы: Production или Demo
+DB_MODE=Production
+
+# ============================================
+# Настройки приложения
+# ============================================
+
+# Дней в месяце для расчётов
+DAYS_IN_MONTH=30
+
+# Размер страницы списков
+PAGE_SIZE=50
+
+# Тема интерфейса (Light/Dark)
+UI_THEME=Light
+```
+
+### Файл App.config (альтернатива)
+
+Если вы не хотите использовать `.env`, можно настроить подключение через `App.config`.
 
 #### Строка подключения к базе данных
 

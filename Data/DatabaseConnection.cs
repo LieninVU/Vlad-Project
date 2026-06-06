@@ -7,6 +7,20 @@ namespace ForVlad.Data
     public class DatabaseConnection
     {
         private static string _cachedConnectionString;
+        private static DatabaseConfig _config;
+        
+        /// <summary>
+        /// Получает конфигурацию базы данных
+        /// </summary>
+        public static DatabaseConfig Config
+        {
+            get
+            {
+                if (_config == null)
+                    _config = DatabaseConfig.Load();
+                return _config;
+            }
+        }
         
         /// <summary>
         /// Получает строку подключения с кэшированием
@@ -16,7 +30,22 @@ namespace ForVlad.Data
             if (!string.IsNullOrEmpty(_cachedConnectionString))
                 return _cachedConnectionString;
             
-            // Способ 1: Из ConfigurationManager
+            // Способ 1: Из .env файла (приоритет!)
+            try
+            {
+                if (Config.DbMode.Equals("Production", StringComparison.OrdinalIgnoreCase))
+                {
+                    _cachedConnectionString = Config.BuildConnectionString();
+                    Console.WriteLine($"[INFO] Используется конфигурация из .env: {Config.Server}");
+                    return _cachedConnectionString;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] Не удалось загрузить .env: {ex.Message}");
+            }
+            
+            // Способ 2: Из ConfigurationManager (App.config)
             try
             {
                 var settings = ConfigurationManager.ConnectionStrings["LeasingSystem"];
@@ -31,27 +60,9 @@ namespace ForVlad.Data
                 Console.WriteLine($"[WARNING] Не удалось прочитать из конфигурации: {ex.Message}");
             }
             
-            // Способ 2: Фолбэк на хардкод (для отладки)
-            _cachedConnectionString = BuildConnectionString();
+            // Способ 3: Фолбэк на конфигурацию по умолчанию
+            _cachedConnectionString = Config.BuildConnectionString();
             return _cachedConnectionString;
-        }
-        
-        /// <summary>
-        /// Строит строку подключения программно
-        /// </summary>
-        private static string BuildConnectionString()
-        {
-            var builder = new SqlConnectionStringBuilder
-            {
-                DataSource = @"(local)\SQLEXPRESS",
-                InitialCatalog = "LeasingSystem",
-                IntegratedSecurity = true,
-                MultipleActiveResultSets = true,
-                TrustServerCertificate = true,
-                ConnectTimeout = 30
-            };
-            
-            return builder.ConnectionString;
         }
         
         /// <summary>
@@ -61,7 +72,10 @@ namespace ForVlad.Data
         {
             string connectionString = GetConnectionString();
             
-            Console.WriteLine($"[INFO] Попытка подключения с строкой: {connectionString}");
+            Console.WriteLine($"\n[INFO] Тестирование подключения...");
+            Console.WriteLine($"[INFO] Сервер: {Config.Server}");
+            Console.WriteLine($"[INFO] База данных: {Config.Database}");
+            Console.WriteLine($"[INFO] Режим: {Config.DbMode}");
             
             try
             {
@@ -74,8 +88,8 @@ namespace ForVlad.Data
                         object result = command.ExecuteScalar();
                         string version = result?.ToString() ?? "Unknown";
                         
-                        Console.WriteLine($"[SUCCESS] Подключение успешно!");
-                        Console.WriteLine($"[INFO] SQL Server Version: {version.Substring(0, Math.Min(100, version.Length))}...");
+                        Console.WriteLine($"\n[SUCCESS] Подключение успешно!");
+                        Console.WriteLine($"[INFO] SQL Server: {version.Substring(0, Math.Min(80, version.Length))}...");
                         
                         return true;
                     }
@@ -83,18 +97,17 @@ namespace ForVlad.Data
             }
             catch (SqlException ex)
             {
-                Console.WriteLine($"[ERROR] Ошибка SQL Server:");
-                Console.WriteLine($"   Message: {ex.Message}");
-                Console.WriteLine($"   Error Number: {ex.Number}");
-                Console.WriteLine($"   State: {ex.State}");
-                Console.WriteLine($"   Class: {ex.Class}");
+                Console.WriteLine($"\n[ERROR] Ошибка SQL Server:");
+                Console.WriteLine($"   Код ошибки: {ex.Number}");
+                Console.WriteLine($"   Сообщение: {ex.Message}");
+                Console.WriteLine($"\n[INFO] Проверьте файл .env с настройками подключения");
                 
                 // Пробуем альтернативные варианты
                 return TryAlternativeConnections();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] Общая ошибка: {ex.Message}");
+                Console.WriteLine($"\n[ERROR] Общая ошибка: {ex.Message}");
                 return false;
             }
         }
@@ -110,7 +123,8 @@ namespace ForVlad.Data
                 @"(local)\SQLEXPRESS",
                 @"localhost\SQLEXPRESS",
                 @".\SQLEXPRESS",
-                @"127.0.0.1\SQLEXPRESS"
+                @"127.0.0.1\SQLEXPRESS",
+                @"(localdb)\MSSQLLocalDB"
             };
             
             foreach (var server in servers)
@@ -132,8 +146,13 @@ namespace ForVlad.Data
                     {
                         connection.Open();
                         
-                        Console.WriteLine($"[SUCCESS] Подключение успешно с сервером: {server}");
-                        Console.WriteLine($"[INFO] Обновите App.config, используя: Server={server}");
+                        Console.WriteLine($"[SUCCESS] Подключение успешно!");
+                        Console.WriteLine($"\n[INFO] Создайте файл .env со следующим содержимым:");
+                        Console.WriteLine("─────────────────────────────────────");
+                        Console.WriteLine($"SQL_SERVER={server}");
+                        Console.WriteLine("SQL_DATABASE=LeasingSystem");
+                        Console.WriteLine("SQL_AUTH_TYPE=Windows");
+                        Console.WriteLine("─────────────────────────────────────");
                         
                         // Кэшируем рабочую строку
                         _cachedConnectionString = builder.ConnectionString;
@@ -148,6 +167,8 @@ namespace ForVlad.Data
             }
             
             Console.WriteLine("\n[ERROR] Не удалось подключиться ни к одному серверу");
+            Console.WriteLine("\n[INFO] Убедитесь, что SQL Server установлен и запущен");
+            Console.WriteLine("[INFO] Проверьте службу: services.msc → SQL Server (SQLEXPRESS)");
             return false;
         }
         
@@ -203,29 +224,27 @@ namespace ForVlad.Data
         }
         
         /// <summary>
-        /// Возвращает отображаемое имя подключения (например: "(local)\SQLEXPRESS / LeasingSystem")
+        /// Возвращает отображаемое имя подключения
         /// </summary>
         public static string GetDisplayName()
         {
             try
             {
-                string connectionString = GetConnectionString();
-                var builder = new SqlConnectionStringBuilder(connectionString);
-                
-                string dataSource = builder.DataSource;
-                string initialCatalog = builder.InitialCatalog;
-                
-                if (string.IsNullOrEmpty(dataSource) && string.IsNullOrEmpty(initialCatalog))
-                {
-                    return "Не определено";
-                }
-                
-                return $"{dataSource} / {initialCatalog}";
+                return $"{Config.Server} / {Config.Database}";
             }
             catch
             {
                 return "Не определено";
             }
+        }
+        
+        /// <summary>
+        /// Сбрасывает кэш строки подключения (для перезагрузки конфигурации)
+        /// </summary>
+        public static void ResetCache()
+        {
+            _cachedConnectionString = null;
+            _config = null;
         }
     }
 }
