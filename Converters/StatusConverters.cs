@@ -3,9 +3,23 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 using ForVlad.Models;
+using ForVlad.Services;
 
 namespace ForVlad.Converters
 {
+    public class EnumToRussianConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return EnumLocalization.ToRussian(value);
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     // Конвертер статуса договора в цвет
     public class StatusToColorConverter : IValueConverter
     {

@@ -200,8 +200,9 @@ BEGIN
     SET NOCOUNT ON;
     SELECT 
         a.Id, a.InventoryNumber, a.Name, a.AssetGroup,
-        CASE a.AssetGroup WHEN 0 THEN 'Транспорт' WHEN 1 THEN 'Оборудование' END AS AssetGroupName,
+        dbo.fn_AssetGroupRu(a.AssetGroup) AS AssetGroupRu,
         a.VehicleBrand, a.VehicleModel, a.IsAvailable,
+        dbo.fn_BooleanRu(a.IsAvailable) AS IsAvailableRu,
         (SELECT COUNT(*) FROM ContractSpecifications cs
          INNER JOIN Contracts c ON cs.ContractId = c.Id
          WHERE cs.AssetId = a.Id AND c.StartDate <= @EndDate 
@@ -321,7 +322,7 @@ BEGIN
     ELSE IF @ReportType = 1
     BEGIN
         SELECT 
-            CASE c.ContractType WHEN 0 THEN 'Аренда' WHEN 1 THEN 'Лизинг' END AS ContractType,
+            dbo.fn_ContractTypeRu(c.ContractType) AS ContractType,
             COUNT(*) AS ContractCount,
             SUM(c.TotalAmount) AS TotalAmount,
             SUM(ISNULL(paid.TotalPaid, 0)) AS PaidAmount,

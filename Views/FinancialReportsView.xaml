@@ -95,10 +95,10 @@
                             <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyName}" Width="160" MinWidth="140" SortMemberPath="CounterpartyName"/>
                             <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90" MinWidth="85" SortMemberPath="DueDate"/>
                             <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat=N2}" Width="95" MinWidth="90" SortMemberPath="TotalAmount"/>
-                            <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90" MinWidth="80" SortMemberPath="Status"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding Status, Converter={StaticResource EnumToRussianConverter}}" Width="90" MinWidth="80" SortMemberPath="Status"/>
                             <DataGridTextColumn Header="Просрочка" Binding="{Binding DaysOverdue}" Width="80" MinWidth="70" SortMemberPath="DaysOverdue"/>
                             <DataGridTextColumn Header="Категория" Binding="{Binding AgingBucket}" Width="90" MinWidth="80" SortMemberPath="AgingBucket"/>
-                            <DataGridTextColumn Header="Оплачен" Binding="{Binding IsPaid}" Width="70" MinWidth="65" SortMemberPath="IsPaid"/>
+                            <DataGridTextColumn Header="Оплачен" Binding="{Binding IsPaid, Converter={StaticResource EnumToRussianConverter}}" Width="70" MinWidth="65" SortMemberPath="IsPaid"/>
                         </DataGrid.Columns>
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow">

@@ -135,7 +135,7 @@
                                 <DataGridTextColumn Header="Описание" Binding="{Binding Description}" Width="150"/>
                                 <DataGridTextColumn Header="Срок" Binding="{Binding DueDate, StringFormat=dd.MM.yyyy}" Width="90"/>
                                 <DataGridTextColumn Header="Сумма" Binding="{Binding Amount, StringFormat=N2}" Width="100"/>
-                                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="90"/>
+                                <DataGridTextColumn Header="Статус" Binding="{Binding Status, Converter={StaticResource EnumToRussianConverter}}" Width="90"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -165,7 +165,13 @@
                         <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditingSpecification.UnitPrice}" Margin="5"/>
                         
                         <TextBlock Grid.Row="3" Text="Период:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding PeriodTypes}" SelectedItem="{Binding EditingSpecification.PeriodType}" Margin="5"/>
+                        <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding PeriodTypes}" SelectedItem="{Binding EditingSpecification.PeriodType}" Margin="5">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                     </Grid>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
                         <Button Content="Сохранить" Background="#27AE60" Foreground="White" Width="90" Margin="0,0,10,0" Command="{Binding SaveSpecificationCommand}"/>

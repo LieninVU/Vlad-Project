@@ -76,9 +76,11 @@
 # 3. Выполните скрипты из папки Database/ по порядку:
 #    01_CreateDatabase.sql
 #    02_CreateTables.sql
+#    02_CreateTables.sql
 #    03_CreateConstraints.sql
 #    04_CreateStoredProcedures.sql
 #    05_SeedData.sql
+#    08_CreateEnumLocalization.sql  (для обновления существующей БД)
 
 # 4. Откройте ForVlad.sln в Visual Studio
 # 5. Нажмите F5 для запуска
@@ -273,10 +275,11 @@ sqlcmd -S "(local)\SQLEXPRESS" -Q "SELECT @@VERSION"
    | Порядок | Файл | Описание |
    |---------|------|----------|
    | 1 | `Database/01_CreateDatabase.sql` | Создание базы данных |
-   | 2 | `Database/02_CreateTables.sql` | Создание таблиц |
-   | 3 | `Database/03_CreateConstraints.sql` | Ограничения и ключи |
+   | 2 | `Database/02_CreateTables.sql` | Создание таблиц и функций локализации |
+   | 3 | `Database/03_CreateConstraints.sql` | Ограничения и представления с русскими названиями |
    | 4 | `Database/04_CreateStoredProcedures.sql` | Хранимые процедуры |
    | 5 | `Database/05_SeedData.sql` | Тестовые данные |
+   | 6 | `Database/08_CreateEnumLocalization.sql` | Обновление локализации на существующей БД |
 
 4. **Проверьте результат:**
    

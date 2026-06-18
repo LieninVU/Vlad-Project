@@ -94,7 +94,7 @@
                               Visibility="{Binding HasCounterparties, Converter={StaticResource IntToVisibilityConverter}}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="200" MinWidth="150"/>
-                    <DataGridTextColumn Header="Тип" Binding="{Binding CounterpartyType}" Width="110" MinWidth="90"/>
+                    <DataGridTextColumn Header="Тип" Binding="{Binding CounterpartyType, Converter={StaticResource EnumToRussianConverter}}" Width="110" MinWidth="90"/>
                     <DataGridTextColumn Header="ИНН" Binding="{Binding INN}" Width="110" MinWidth="100"/>
                     <DataGridTextColumn Header="Контактное лицо" Binding="{Binding ContactPerson}" Width="150" MinWidth="120"/>
                     <DataGridTextColumn Header="Телефон" Binding="{Binding Phone}" Width="120" MinWidth="100"/>
@@ -182,8 +182,14 @@
                             <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditingCounterparty.Name, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>
                             
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Тип:" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding CounterpartyTypes}"
-                                      SelectedItem="{Binding EditingCounterparty.CounterpartyType}" Margin="5"/>
+<ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding CounterpartyTypes}"
+                          SelectedItem="{Binding EditingCounterparty.CounterpartyType}" Margin="5">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                             
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="ИНН:" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditingCounterparty.INN, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>

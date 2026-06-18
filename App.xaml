@@ -18,6 +18,7 @@
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
         <converters:IntToVisibilityInverseConverter x:Key="IntToVisibilityInverseConverter" />
         <converters:DaysRemainingConverter x:Key="DaysRemainingConverter" />
+        <converters:EnumToRussianConverter x:Key="EnumToRussianConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -60,15 +60,15 @@ namespace ForVlad.Services
             var today = DateTime.Today;
             switch (periodKind)
             {
-                case "Quarter":
+                case "Квартал":
                     var quarterStartMonth = ((today.Month - 1) / 3) * 3 + 1;
                     var startQ = new DateTime(today.Year, quarterStartMonth, 1);
                     return (startQ, startQ.AddMonths(3).AddDays(-1));
-                case "Year":
+                case "Год":
                     return (new DateTime(today.Year, 1, 1), new DateTime(today.Year, 12, 31));
-                case "Custom" when customStart.HasValue && customEnd.HasValue:
+                case "Произвольный" when customStart.HasValue && customEnd.HasValue:
                     return (customStart.Value.Date, customEnd.Value.Date);
-                default: // Month
+                default: // Месяц
                     var startM = new DateTime(today.Year, today.Month, 1);
                     return (startM, startM.AddMonths(1).AddDays(-1));
             }

@@ -112,7 +112,7 @@
                     <DataGridTemplateColumn Header="Тип" Width="85" MinWidth="80">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding ContractType}" FontWeight="Bold"
+                                <TextBlock Text="{Binding ContractType, Converter={StaticResource EnumToRussianConverter}}" FontWeight="Bold"
                                            Foreground="{Binding ContractType, Converter={StaticResource ContractTypeToColorConverter}}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -122,7 +122,7 @@
                             <DataTemplate>
                                 <Border Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
                                         CornerRadius="3" Padding="4,2" HorizontalAlignment="Left">
-                                    <TextBlock Text="{Binding Status}" Foreground="White" FontWeight="SemiBold" FontSize="11"/>
+                                    <TextBlock Text="{Binding Status, Converter={StaticResource EnumToRussianConverter}}" Foreground="White" FontWeight="SemiBold" FontSize="11"/>
                                 </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -211,7 +211,7 @@
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CounterpartyDisplayName}" Margin="8,0,0,6"/>
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Тип / статус:" FontWeight="SemiBold"/>
                         <TextBlock Grid.Row="2" Grid.Column="1" Margin="8,0,0,6">
-                            <Run Text="{Binding ContractType}"/><Run Text=" / "/><Run Text="{Binding Status}"/>
+                            <Run Text="{Binding ContractType, Converter={StaticResource EnumToRussianConverter}}"/><Run Text=" / "/><Run Text="{Binding Status, Converter={StaticResource EnumToRussianConverter}}"/>
                         </TextBlock>
                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Период:" FontWeight="SemiBold"/>
                         <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding PeriodDisplay}" Margin="8,0,0,6"/>

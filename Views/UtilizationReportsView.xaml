@@ -43,7 +43,24 @@
                     <TextBlock Text="Период:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <ComboBox ItemsSource="{Binding PeriodOptions}" SelectedItem="{Binding SelectedPeriod}" Width="120" Margin="0,0,16,0"/>
                     <TextBlock Text="Категория:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox ItemsSource="{Binding AssetGroupFilters}" SelectedItem="{Binding SelectedAssetGroup}" Width="140"/>
+                    <ComboBox ItemsSource="{Binding AssetGroupFilters}" SelectedItem="{Binding SelectedAssetGroup}" Width="140">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                                    <Setter Property="Text" Value="Все"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </WrapPanel>
                 <StackPanel Orientation="Horizontal"
                             Visibility="{Binding IsCustomPeriod, Converter={StaticResource BoolVisConverter}}">
@@ -110,12 +127,12 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Инв. №" Binding="{Binding InventoryNumber}" Width="90" MinWidth="80"/>
                     <DataGridTextColumn Header="Наименование" Binding="{Binding AssetName}" Width="180" MinWidth="150"/>
-                    <DataGridTextColumn Header="Группа" Binding="{Binding AssetGroup}" Width="90" MinWidth="80"/>
+                    <DataGridTextColumn Header="Группа" Binding="{Binding AssetGroup, Converter={StaticResource EnumToRussianConverter}}" Width="90" MinWidth="80"/>
                     <DataGridTextColumn Header="Дней аренды" Binding="{Binding DaysRented}" Width="90" MinWidth="80"/>
                     <DataGridTextColumn Header="Загрузка %" Binding="{Binding UtilizationRate, StringFormat=F1}" Width="85" MinWidth="75"/>
                     <DataGridTextColumn Header="Выручка" Binding="{Binding Revenue, StringFormat=N2}" Width="95" MinWidth="90"/>
                     <DataGridTextColumn Header="Ставка/мес" Binding="{Binding MonthlyRate, StringFormat=N2}" Width="95" MinWidth="90"/>
-                    <DataGridTextColumn Header="Доступен" Binding="{Binding IsAvailable}" Width="75" MinWidth="70"/>
+                    <DataGridTextColumn Header="Доступен" Binding="{Binding IsAvailable, Converter={StaticResource EnumToRussianConverter}}" Width="75" MinWidth="70"/>
                     <DataGridTextColumn Header="Примечание" Binding="{Binding AlertMessage}" Width="140" MinWidth="120"/>
                 </DataGrid.Columns>
                 <DataGrid.RowStyle>

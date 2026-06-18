@@ -103,7 +103,24 @@
                     <ComboBox ItemsSource="{Binding StatusFilterOptions}"
                               SelectedItem="{Binding FilterStatus}"
                               Width="150"
-                              ToolTip="Пусто = все статусы"/>
+                              ToolTip="Пусто = все статусы">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                                    <Setter Property="Text" Value="Все"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                     
                     <Button Content="✕" 
                             ToolTip="Очистить фильтр"
@@ -144,7 +161,7 @@
                     <DataGridTemplateColumn Header="Тип" Width="85" MinWidth="80">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding ContractType}" FontWeight="SemiBold"
+                                <TextBlock Text="{Binding ContractType, Converter={StaticResource EnumToRussianConverter}}" FontWeight="SemiBold"
                                            Foreground="{Binding ContractType, Converter={StaticResource ContractTypeToColorConverter}}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -154,7 +171,7 @@
                             <DataTemplate>
                                 <Border Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
                                         CornerRadius="3" Padding="4,2" HorizontalAlignment="Left">
-                                    <TextBlock Text="{Binding Status}" Foreground="White" FontWeight="SemiBold" FontSize="11"/>
+                                    <TextBlock Text="{Binding Status, Converter={StaticResource EnumToRussianConverter}}" Foreground="White" FontWeight="SemiBold" FontSize="11"/>
                                 </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -258,17 +275,29 @@
                         
                         <!-- Тип договора -->
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Тип договора:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="1" Grid.Column="1"
+<ComboBox Grid.Row="1" Grid.Column="1"
                                   ItemsSource="{Binding ContractTypes}"
                                   SelectedItem="{Binding EditingContract.ContractType}"
-                                  Margin="5"/>
-                        
+                                  Margin="5">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
                         <!-- Статус -->
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Статус:" VerticalAlignment="Center"/>
                         <ComboBox Grid.Row="2" Grid.Column="1"
                                   ItemsSource="{Binding Statuses}"
                                   SelectedItem="{Binding EditingContract.Status}"
-                                  Margin="5"/>
+                                  Margin="5">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                         
                         <!-- Контрагент -->
                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Контрагент:" VerticalAlignment="Center"/>

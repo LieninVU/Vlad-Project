@@ -53,8 +53,8 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Assets_VehicleFields')
     ALTER TABLE Assets ADD CONSTRAINT CK_Assets_VehicleFields CHECK (
-        (AssetGroup = 0 AND VehicleBrand IS NOT NULL) OR 
-        (AssetGroup = 1 AND VehicleBrand IS NULL)
+        (AssetGroup = 0 AND VehicleBrand IS NOT NULL AND VehicleModel IS NOT NULL) OR 
+        (AssetGroup = 1 AND VehicleBrand IS NULL AND VehicleModel IS NULL)
     );
 GO
 
@@ -85,6 +85,15 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Contracts_Si
 GO
 
 PRINT 'Ограничения для Contracts обработаны.';
+GO
+
+-- Проверочные ограничения для Contracts (PaymentScheduleType)
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Contracts_PaymentScheduleType')
+    ALTER TABLE Contracts ADD CONSTRAINT CK_Contracts_PaymentScheduleType 
+        CHECK (PaymentScheduleType BETWEEN 0 AND 2);
+GO
+
+PRINT 'Ограничение CK_Contracts_PaymentScheduleType добавлено.';
 GO
 
 -- ContractSpecifications
@@ -158,6 +167,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Counterparties_Active'
     INCLUDE (Name, Inn, Phone, Email);
 GO
 -- Обновляем представления (удаляем старые и создаём заново)
+DROP VIEW IF EXISTS vw_ContractsLocalized;
+DROP VIEW IF EXISTS vw_PaymentsLocalized;
 DROP VIEW IF EXISTS vw_ActiveContracts;
 DROP VIEW IF EXISTS vw_AssetUtilization;
 DROP VIEW IF EXISTS vw_PaymentOverdue;
@@ -168,7 +179,9 @@ SELECT
     c.Id,
     c.ContractNumber,
     c.ContractType,
+    dbo.fn_ContractTypeRu(c.ContractType) AS ContractTypeRu,
     c.ContractStatus,
+    dbo.fn_ContractStatusRu(c.ContractStatus) AS ContractStatusRu,
     cp.Name AS CounterpartyName,
     cp.Inn AS CounterpartyInn,
     c.SignedDate,
@@ -192,7 +205,7 @@ SELECT
     (SELECT COUNT(*) FROM PaymentSchedules ps WHERE ps.ContractId = c.Id AND ps.IsPaid = 0 AND ps.DueDate < GETDATE()) AS OverduePaymentsCount
 FROM Contracts c
 INNER JOIN Counterparties cp ON c.CounterpartyId = cp.Id
-WHERE c.ContractStatus IN (1, 2); -- Signed, Active
+WHERE c.ContractStatus IN (1, 2);
 GO
 
 CREATE VIEW vw_AssetUtilization AS
@@ -201,14 +214,22 @@ SELECT
     a.InventoryNumber,
     a.Name,
     a.AssetGroup,
+    dbo.fn_AssetGroupRu(a.AssetGroup) AS AssetGroupRu,
     a.VehicleBrand,
     a.VehicleModel,
+    a.VehicleSubcategory,
+    dbo.fn_VehicleSubcategoryRu(a.VehicleSubcategory) AS VehicleSubcategoryRu,
+    a.EquipmentSubcategory,
+    dbo.fn_EquipmentSubcategoryRu(a.EquipmentSubcategory) AS EquipmentSubcategoryRu,
+    a.AssetCondition,
+    dbo.fn_AssetConditionRu(a.AssetCondition) AS AssetConditionRu,
     a.IsAvailable,
+    dbo.fn_BooleanRu(a.IsAvailable) AS IsAvailableRu,
     a.HourlyRate,
     a.DailyRate,
     (SELECT COUNT(*) FROM ContractSpecifications cs WHERE cs.AssetId = a.Id) AS TotalRentals,
     (SELECT ISNULL(SUM(cs.Quantity), 0) FROM ContractSpecifications cs WHERE cs.AssetId = a.Id) AS TotalUnitsRented,
-    (SELECT ISNULL(SUM(cs.Quantity * cs.UnitPrice), 0) FROM ContractSpecifications cs WHERE cs.AssetId = a.Id) AS TotalRevenue, -- Исправлено: TotalPrice не было, считаем как Quantity * UnitPrice
+    (SELECT ISNULL(SUM(cs.Quantity * cs.UnitPrice), 0) FROM ContractSpecifications cs WHERE cs.AssetId = a.Id) AS TotalRevenue,
     (SELECT MAX(c.EndDate) FROM Contracts c 
      INNER JOIN ContractSpecifications cs ON c.Id = cs.ContractId 
      WHERE cs.AssetId = a.Id AND c.ContractStatus IN (1, 2)) AS LastRentalDate
@@ -225,6 +246,9 @@ SELECT
     ps.Description,
     ps.DueDate,
     ps.Amount,
+    ps.IsPaid,
+    dbo.fn_BooleanRu(ps.IsPaid) AS IsPaidRu,
+    dbo.fn_PaymentStatusRu(ps.IsPaid, ps.DueDate) AS PaymentStatusRu,
     DATEDIFF(DAY, ps.DueDate, GETDATE()) AS DaysOverdue,
     c.TotalAmount - ISNULL((
         SELECT SUM(Amount)
@@ -236,11 +260,50 @@ INNER JOIN Contracts c ON ps.ContractId = c.Id
 INNER JOIN Counterparties cp ON c.CounterpartyId = cp.Id
 WHERE ps.IsPaid = 0 
     AND ps.DueDate < GETDATE()
-    AND c.ContractStatus IN (1, 2) -- Signed, Active
--- ORDER BY перенесён в запрос при использовании представления (в представлении ORDER BY не допускается)
--- Но мы можем добавить TOP 100 PERCENT с ORDER BY для совместимости (хоть и не рекомендуется)
--- Однако лучше упорядочивать при SELECT из представления. Оставим без ORDER BY.
-;
+    AND c.ContractStatus IN (1, 2);
+GO
+
+CREATE VIEW vw_ContractsLocalized AS
+SELECT
+    c.Id,
+    c.ContractNumber,
+    c.ContractType,
+    dbo.fn_ContractTypeRu(c.ContractType) AS ContractTypeRu,
+    c.ContractStatus,
+    dbo.fn_ContractStatusRu(c.ContractStatus) AS ContractStatusRu,
+    cp.Name AS CounterpartyName,
+    cp.Inn AS CounterpartyInn,
+    dbo.fn_CounterpartyTypeRu(cp.CounterpartyType) AS CounterpartyTypeRu,
+    c.SignedDate,
+    c.StartDate,
+    c.EndDate,
+    c.TotalAmount,
+    c.PaymentTerms,
+    c.Notes,
+    c.CreatedAt,
+    c.UpdatedAt
+FROM Contracts c
+INNER JOIN Counterparties cp ON c.CounterpartyId = cp.Id;
+GO
+
+CREATE VIEW vw_PaymentsLocalized AS
+SELECT
+    ps.Id,
+    ps.ContractId,
+    c.ContractNumber,
+    cp.Name AS CounterpartyName,
+    ps.PaymentNumber,
+    ps.Description,
+    ps.DueDate,
+    ps.Amount,
+    ps.IsPaid,
+    dbo.fn_BooleanRu(ps.IsPaid) AS IsPaidRu,
+    dbo.fn_PaymentStatusRu(ps.IsPaid, ps.DueDate) AS PaymentStatusRu,
+    ps.PaidDate,
+    DATEDIFF(DAY, ps.DueDate, GETDATE()) AS DaysOverdue
+FROM PaymentSchedules ps
+INNER JOIN Contracts c ON ps.ContractId = c.Id
+INNER JOIN Counterparties cp ON c.CounterpartyId = cp.Id;
 GO
 
 PRINT 'Представления для отчетности созданы.';

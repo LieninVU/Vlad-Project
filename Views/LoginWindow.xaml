@@ -12,8 +12,6 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         Background="#F0F0F0"
-        WindowStyle="None"
-        AllowsTransparency="True"
         behaviors:WindowScalingBehavior.IsEnabled="True"
         behaviors:WindowScalingBehavior.BaseWidth="500"
         behaviors:WindowScalingBehavior.BaseHeight="400">

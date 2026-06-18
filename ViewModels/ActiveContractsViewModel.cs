@@ -250,8 +250,8 @@ namespace ForVlad.ViewModels
             {
                 c.ContractNumber,
                 c.CounterpartyDisplayName ?? "",
-                c.ContractType.ToString(),
-                c.Status.ToString(),
+                EnumLocalization.ContractTypeToRussian(c.ContractType),
+                EnumLocalization.ContractStatusToRussian(c.Status),
                 c.StartDate.ToString("dd.MM.yyyy"),
                 c.EndDate?.ToString("dd.MM.yyyy") ?? "",
                 c.TotalAmount.ToString("N2"),

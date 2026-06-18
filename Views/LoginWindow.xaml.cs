@@ -10,12 +10,10 @@ namespace ForVlad.Views
         public LoginWindow()
         {
             InitializeComponent();
-            
-            // Создаём ViewModel
+
             var viewModel = new LoginViewModel();
             DataContext = viewModel;
-            
-            // Подписываемся на события
+
             viewModel.LoginSuccess += OnLoginSuccess;
             viewModel.LoginFailed += OnLoginFailed;
         }

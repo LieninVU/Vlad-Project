@@ -223,7 +223,7 @@ namespace ForVlad.ViewModels
                 p.CounterpartyName,
                 p.DueDate.ToString("dd.MM.yyyy"),
                 (p.TotalAmount ?? 0).ToString("N2"),
-                p.Status.ToString(),
+                EnumLocalization.PaymentStatusToRussian(p.Status),
                 p.DaysOverdue.ToString(),
                 p.AgingBucket,
                 p.IsPaid ? "Да" : "Нет"

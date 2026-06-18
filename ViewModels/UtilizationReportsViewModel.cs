@@ -32,7 +32,7 @@ namespace ForVlad.ViewModels
             set => SetField(ref _alerts, value);
         }
         
-        private string _selectedPeriod = "Month";
+        private string _selectedPeriod = "Месяц";
         public string SelectedPeriod
         {
             get => _selectedPeriod;
@@ -46,7 +46,7 @@ namespace ForVlad.ViewModels
             }
         }
         
-        public bool IsCustomPeriod => SelectedPeriod == "Custom";
+        public bool IsCustomPeriod => SelectedPeriod == "Произвольный";
         
         private AssetGroup? _selectedAssetGroup;
         public AssetGroup? SelectedAssetGroup
@@ -94,7 +94,7 @@ namespace ForVlad.ViewModels
             Alerts = new ObservableCollection<string>();
             Summary = new UtilizationSummary();
             
-            PeriodOptions = new ObservableCollection<string> { "Month", "Quarter", "Year", "Custom" };
+            PeriodOptions = new ObservableCollection<string> { "Месяц", "Квартал", "Год", "Произвольный" };
             AssetGroupFilters = new ObservableCollection<AssetGroup?> { null, AssetGroup.Vehicle, AssetGroup.Equipment };
             
             CustomPeriodStart = DateTime.Today.AddMonths(-1);
@@ -148,7 +148,7 @@ namespace ForVlad.ViewModels
             {
                 r.InventoryNumber,
                 r.AssetName,
-                r.AssetGroup.ToString(),
+                EnumLocalization.AssetGroupToRussian(r.AssetGroup),
                 r.DaysInPeriod.ToString(),
                 r.DaysRented.ToString(),
                 r.UtilizationRate.ToString("F1"),
