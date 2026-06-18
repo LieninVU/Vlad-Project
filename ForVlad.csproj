@@ -155,6 +155,13 @@
     <Compile Include="Behaviors\PasswordBoxBehavior.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Behaviors\WindowScalingBehavior.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="Styles\ScalableStyles.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Models\Enums.cs" />
     <Compile Include="Models\ReportModels.cs" />

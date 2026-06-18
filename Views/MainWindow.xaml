@@ -2,9 +2,15 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ForVlad.Views"
+        xmlns:behaviors="clr-namespace:ForVlad.Behaviors"
         Title="Система учёта договоров аренды и лизинга спецтехники" 
         Height="700" Width="1100"
-        WindowStartupLocation="CenterScreen">
+        MinWidth="800" MinHeight="500"
+        Background="#ECF0F1"
+        WindowStartupLocation="CenterScreen"
+        behaviors:WindowScalingBehavior.IsEnabled="True"
+        behaviors:WindowScalingBehavior.BaseWidth="1100"
+        behaviors:WindowScalingBehavior.BaseHeight="700">
     
     <Window.Resources>
         <Style TargetType="Button">

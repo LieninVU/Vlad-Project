@@ -8,11 +8,15 @@
         xmlns:converters="clr-namespace:ForVlad.Converters"
         mc:Ignorable="d"
         Title="LeasingSystem - Вход" Height="400" Width="500"
+        MinWidth="400" MinHeight="350"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         Background="#F0F0F0"
         WindowStyle="None"
-        AllowsTransparency="True">
+        AllowsTransparency="True"
+        behaviors:WindowScalingBehavior.IsEnabled="True"
+        behaviors:WindowScalingBehavior.BaseWidth="500"
+        behaviors:WindowScalingBehavior.BaseHeight="400">
     
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
