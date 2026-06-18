@@ -30,7 +30,7 @@
             
             <Border Background="#F8F9FA" BorderBrush="#ECF0F1" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,0,16">
                 <Grid>
-                    <Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions>
                         <ColumnDefinition Width="200"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
@@ -41,31 +41,25 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    
+
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Дней в месяце (расчёты):" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DaysInMonth, UpdateSourceTrigger=PropertyChanged}"/>
-                    
+
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Размер страницы списков:" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding DefaultPageSize}"/>
-                    
+
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Тема интерфейса:" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding UiTheme}"/>
-                    
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Рабочие часы:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding WorkingHours, UpdateSourceTrigger=PropertyChanged}"
-                              ToolTip="Формат: 09:00-18:00"/>
-                    
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Валюта по умолчанию:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DefaultCurrency, UpdateSourceTrigger=PropertyChanged}"/>
-                    
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Подключение к БД:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ConnectionStringDisplay, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="В полной версии — строка подключения SQL Server"/>
-                    
-                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Версия приложения:" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding AppVersion}" VerticalAlignment="Center" Margin="8,4" FontWeight="SemiBold"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Валюта по умолчанию:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DefaultCurrency, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Подключение к БД:" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ConnectionStringDisplay}" VerticalAlignment="Center" Margin="8,4" Foreground="#7F8C8D"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Версия приложения:" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding AppVersion}" VerticalAlignment="Center" Margin="8,4" FontWeight="SemiBold"/>
                 </Grid>
             </Border>
             

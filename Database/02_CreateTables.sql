@@ -90,6 +90,22 @@ GO
 PRINT 'Таблица Assets создана.';
 GO
 
+-- Добавление новых столбцов для обратной совместимости
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Assets') AND name = 'PurchasePrice')
+    ALTER TABLE Assets ADD PurchasePrice DECIMAL(18,2) NOT NULL DEFAULT 0;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Assets') AND name = 'ResidualValue')
+    ALTER TABLE Assets ADD ResidualValue DECIMAL(18,2) NOT NULL DEFAULT 0;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Assets') AND name = 'Manufacturer')
+    ALTER TABLE Assets ADD Manufacturer NVARCHAR(100) NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Assets') AND name = 'Model')
+    ALTER TABLE Assets ADD Model NVARCHAR(100) NULL;
+GO
+
+PRINT 'Новые столбцы Assets добавлены.';
+
 -- ----------------------------------------------------------------------
 -- Таблица: Contracts
 -- ----------------------------------------------------------------------

@@ -46,15 +46,6 @@ namespace ForVlad.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("09:00-18:00")]
-        public string WorkingHours
-        {
-            get { return ((string)(this["WorkingHours"])); }
-            set { this["WorkingHours"] = value; }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("RUB")]
         public string DefaultCurrency
         {

@@ -13,9 +13,6 @@
     <Setting Name="UiTheme" Type="System.String" Scope="User">
       <Value Profile="(Default)">Light</Value>
     </Setting>
-    <Setting Name="WorkingHours" Type="System.String" Scope="User">
-      <Value Profile="(Default)">09:00-18:00</Value>
-    </Setting>
     <Setting Name="DefaultCurrency" Type="System.String" Scope="User">
       <Value Profile="(Default)">RUB</Value>
     </Setting>

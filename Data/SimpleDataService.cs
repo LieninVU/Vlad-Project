@@ -142,6 +142,8 @@ namespace ForVlad.Data
 
         public void SaveAsset(Asset asset)
         {
+            SyncSubcategoryToEnum(asset);
+
             if (asset.Id == 0)
             {
                 asset.Id = _assetId++;
@@ -164,10 +166,36 @@ namespace ForVlad.Data
                     existing.PurchasePrice = asset.PurchasePrice;
                     existing.ResidualValue = asset.ResidualValue;
                     existing.MonthlyRentalRate = asset.MonthlyRentalRate;
+                    existing.HourlyRate = asset.HourlyRate;
+                    existing.DailyRate = asset.DailyRate;
                     existing.IsAvailable = asset.IsAvailable;
-                    existing.Notes = asset.Notes;
+                    existing.Description = asset.Description;
+                    existing.AssetCondition = asset.AssetCondition;
+                    existing.EnginePower = asset.EnginePower;
+                    existing.RegistrationNumber = asset.RegistrationNumber;
+                    existing.Weight = asset.Weight;
+                    existing.PowerRequirements = asset.PowerRequirements;
+                    existing.VehicleSubcategory = asset.VehicleSubcategory;
+                    existing.EquipmentSubcategory = asset.EquipmentSubcategory;
                     existing.ModifiedDate = DateTime.Now;
                 }
+            }
+        }
+
+        private static void SyncSubcategoryToEnum(Asset asset)
+        {
+            if (string.IsNullOrEmpty(asset.Subcategory))
+                return;
+
+            if (asset.AssetGroup == AssetGroup.Vehicle)
+            {
+                if (Enum.TryParse(asset.Subcategory, out VehicleSubcategory vs))
+                    asset.VehicleSubcategory = vs;
+            }
+            else
+            {
+                if (Enum.TryParse(asset.Subcategory, out EquipmentSubcategory es))
+                    asset.EquipmentSubcategory = es;
             }
         }
 

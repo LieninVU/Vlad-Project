@@ -6,7 +6,7 @@
         Title="Система учёта договоров аренды и лизинга спецтехники" 
         Height="700" Width="1100"
         MinWidth="800" MinHeight="500"
-        Background="#ECF0F1"
+Background="{DynamicResource WindowBackground}"
         WindowStartupLocation="CenterScreen"
         behaviors:WindowScalingBehavior.IsEnabled="True"
         behaviors:WindowScalingBehavior.BaseWidth="1100"
@@ -109,7 +109,7 @@
             </Grid.RowDefinitions>
             
             <!-- Панель заголовка текущего раздела -->
-            <Border Grid.Row="0" Background="#3498DB" Padding="15,12">
+            <Border Grid.Row="0" Background="{DynamicResource HeaderBackground}" Padding="15,12">
                 <DockPanel LastChildFill="True">
                     <!-- Кнопки действий — справа, не перекрывают заголовок -->
                     <ContentControl DockPanel.Dock="Right"
@@ -153,7 +153,7 @@
             <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
             
             <!-- Строка состояния (по спецификации MainWindow.StatusBar) -->
-            <Border Grid.Row="2" Background="#ECF0F1" BorderBrush="#BDC3C7" BorderThickness="0,1,0,0" Padding="10,6">
+            <Border Grid.Row="2" Background="{DynamicResource PanelBackground}" BorderBrush="#BDC3C7" BorderThickness="0,1,0,0" Padding="10,6">
                 <DockPanel LastChildFill="True">
                     <TextBlock DockPanel.Dock="Right" Text="{Binding AppVersion, StringFormat=Версия {0}}"
                                Foreground="#7F8C8D" FontSize="11" Margin="16,0,0,0"/>

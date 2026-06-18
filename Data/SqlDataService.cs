@@ -290,7 +290,8 @@ namespace ForVlad.Data
                        AssetCondition, IsAvailable, Description,
                        VehicleSubcategory, EquipmentSubcategory,
                        [EquipmentType], EnginePower, RegistrationNumber, Weight, PowerRequirements,
-                       CreatedAt, UpdatedAt
+                       CreatedAt, UpdatedAt, MonthlyRate, PurchasePrice, ResidualValue,
+                       Manufacturer, Model
                 FROM Assets
                 ORDER BY Name";
             
@@ -320,7 +321,8 @@ namespace ForVlad.Data
                        AssetCondition, IsAvailable, Description,
                        VehicleSubcategory, EquipmentSubcategory,
                        [EquipmentType], EnginePower, RegistrationNumber, Weight, PowerRequirements,
-                       CreatedAt, UpdatedAt
+                       CreatedAt, UpdatedAt, MonthlyRate, PurchasePrice, ResidualValue,
+                       Manufacturer, Model
                 FROM Assets
                 WHERE Id = @Id";
             
@@ -345,6 +347,8 @@ namespace ForVlad.Data
         
         public void SaveAsset(Asset asset)
         {
+            SyncSubcategoryToEnum(asset);
+
             if (asset.Id == 0)
             {
                 InsertAsset(asset);
@@ -352,6 +356,23 @@ namespace ForVlad.Data
             else
             {
                 UpdateAsset(asset);
+            }
+        }
+
+        private static void SyncSubcategoryToEnum(Asset asset)
+        {
+            if (string.IsNullOrEmpty(asset.Subcategory))
+                return;
+
+            if (asset.AssetGroup == AssetGroup.Vehicle)
+            {
+                if (Enum.TryParse(asset.Subcategory, out VehicleSubcategory vs))
+                    asset.VehicleSubcategory = vs;
+            }
+            else
+            {
+                if (Enum.TryParse(asset.Subcategory, out EquipmentSubcategory es))
+                    asset.EquipmentSubcategory = es;
             }
         }
         
@@ -431,24 +452,35 @@ namespace ForVlad.Data
                 }
             }
             
-            // В БД: VehicleBrand, VehicleModel, VinNumber, ManufactureYear, HourlyRate, DailyRate
-            // Пробуем получить MonthlyRentalRate из HourlyRate или DailyRate
-            // Если не установлены, используем MonthlyRentalRate
-            decimal hourlyRate = asset.HourlyRate > 0 ? asset.HourlyRate : (asset.MonthlyRentalRate / 30 / 8);
-            decimal dailyRate = asset.DailyRate > 0 ? asset.DailyRate : (asset.MonthlyRentalRate / 30);
-            
-            string sql = @"
+            // В БД: VehicleBrand, VehicleModel, VinNumber, ManufactureYear, HourlyRate, DailyRate, MonthlyRate
+            decimal hourlyRate = asset.HourlyRate;
+            decimal dailyRate = asset.DailyRate;
+            decimal monthlyRate = asset.MonthlyRentalRate;
+
+            // Если месячная ставка не указана, но указана дневная — вычисляем
+            if (monthlyRate <= 0 && dailyRate > 0)
+                monthlyRate = dailyRate * 30;
+            // Если дневная не указана, но указана месячная — вычисляем
+            if (dailyRate <= 0 && monthlyRate > 0)
+                dailyRate = monthlyRate / 30;
+            // Если почасовая не указана, вычисляем из дневной
+            if (hourlyRate <= 0 && dailyRate > 0)
+                hourlyRate = dailyRate / 8;
+
+string sql = @"
                 INSERT INTO Assets 
                 (InventoryNumber, Name, AssetGroup, VehicleBrand, VehicleModel, 
                  VinNumber, ManufactureYear, HourlyRate, DailyRate,
-                 AssetCondition, IsAvailable, Description,
+                 AssetCondition, IsAvailable, Description, MonthlyRate,
+                 PurchasePrice, ResidualValue, Manufacturer, Model,
                  VehicleSubcategory, EquipmentSubcategory,
                  [EquipmentType], EnginePower, RegistrationNumber, Weight, PowerRequirements,
                  CreatedAt)
                 VALUES 
                 (@InventoryNumber, @Name, @AssetGroup, @VehicleBrand, @VehicleModel,
                  @VinNumber, @ManufactureYear, @HourlyRate, @DailyRate,
-                 @AssetCondition, @IsAvailable, @Description,
+                 @AssetCondition, @IsAvailable, @Description, @MonthlyRate,
+                 @PurchasePrice, @ResidualValue, @Manufacturer, @Model,
                  @VehicleSubcategory, @EquipmentSubcategory,
                  @EquipmentType, @EnginePower, @RegistrationNumber, @Weight, @PowerRequirements,
                  @CreatedAt);
@@ -458,7 +490,7 @@ namespace ForVlad.Data
             {
                 using (var command = new SqlCommand(sql, connection))
                 {
-                    AddAssetParameters(command, asset, hourlyRate, dailyRate);
+                    AddAssetParameters(command, asset, hourlyRate, dailyRate, monthlyRate);
                     connection.Open();
                     asset.Id = Convert.ToInt32(command.ExecuteScalar());
                 }
@@ -536,10 +568,18 @@ namespace ForVlad.Data
                 }
             }
             
-            decimal hourlyRate = asset.HourlyRate > 0 ? asset.HourlyRate : (asset.MonthlyRentalRate / 30 / 8);
-            decimal dailyRate = asset.DailyRate > 0 ? asset.DailyRate : (asset.MonthlyRentalRate / 30);
-            
-            string sql = @"
+decimal hourlyRate = asset.HourlyRate;
+            decimal dailyRate = asset.DailyRate;
+            decimal monthlyRate = asset.MonthlyRentalRate;
+
+            if (monthlyRate <= 0 && dailyRate > 0)
+                monthlyRate = dailyRate * 30;
+            if (dailyRate <= 0 && monthlyRate > 0)
+                dailyRate = monthlyRate / 30;
+            if (hourlyRate <= 0 && dailyRate > 0)
+                hourlyRate = dailyRate / 8;
+
+string sql = @"
                 UPDATE Assets SET
                     InventoryNumber = @InventoryNumber,
                     Name = @Name,
@@ -550,6 +590,11 @@ namespace ForVlad.Data
                     ManufactureYear = @ManufactureYear,
                     HourlyRate = @HourlyRate,
                     DailyRate = @DailyRate,
+                    MonthlyRate = @MonthlyRate,
+                    PurchasePrice = @PurchasePrice,
+                    ResidualValue = @ResidualValue,
+                    Manufacturer = @Manufacturer,
+                    Model = @Model,
                     AssetCondition = @AssetCondition,
                     IsAvailable = @IsAvailable,
                     Description = @Description,
@@ -567,7 +612,7 @@ namespace ForVlad.Data
             {
                 using (var command = new SqlCommand(sql, connection))
                 {
-                    AddAssetParameters(command, asset, hourlyRate, dailyRate);
+                    AddAssetParameters(command, asset, hourlyRate, dailyRate, monthlyRate);
                     command.Parameters.AddWithValue("@Id", asset.Id);
                     command.Parameters.AddWithValue("@UpdatedAt", DateTime.Now);
                     connection.Open();
@@ -604,26 +649,48 @@ namespace ForVlad.Data
             //      AssetCondition(10), IsAvailable(11), Description(12),
             //      VehicleSubcategory(13), EquipmentSubcategory(14),
             //      EquipmentType(15), EnginePower(16), RegistrationNumber(17), Weight(18), PowerRequirements(19),
-            //      CreatedAt(20), UpdatedAt(21)
-            
+            //      CreatedAt(20), UpdatedAt(21), MonthlyRate(22), PurchasePrice(23), ResidualValue(24),
+            //      Manufacturer(25), Model(26)
+
             decimal hourlyRate = reader.IsDBNull(8) ? 0 : reader.GetDecimal(8);
             decimal dailyRate = reader.IsDBNull(9) ? 0 : reader.GetDecimal(9);
-            
+            decimal monthlyRate = reader.FieldCount > 22 && !reader.IsDBNull(22) ? reader.GetDecimal(22) : 0;
+            decimal purchasePrice = reader.FieldCount > 23 && !reader.IsDBNull(23) ? reader.GetDecimal(23) : 0;
+            decimal residualValue = reader.FieldCount > 24 && !reader.IsDBNull(24) ? reader.GetDecimal(24) : 0;
+
+            string manufacturer = null;
+            string model = null;
+            if (reader.FieldCount > 25 && !reader.IsDBNull(25))
+                manufacturer = reader.GetString(25);
+            else if (!reader.IsDBNull(4))
+                manufacturer = reader.GetString(4);
+            if (reader.FieldCount > 26 && !reader.IsDBNull(26))
+                model = reader.GetString(26);
+            else if (!reader.IsDBNull(5))
+                model = reader.GetString(5);
+
+            var assetGroup = reader.IsDBNull(3) ? AssetGroup.Vehicle : (AssetGroup)reader.GetByte(3);
+
+            string subcategory = null;
+            if (assetGroup == AssetGroup.Vehicle && !reader.IsDBNull(13))
+                subcategory = ((VehicleSubcategory)reader.GetByte(13)).ToString();
+            else if (assetGroup == AssetGroup.Equipment && !reader.IsDBNull(14))
+                subcategory = ((EquipmentSubcategory)reader.GetByte(14)).ToString();
+
             return new Asset
             {
                 Id = reader.IsDBNull(0) ? 0 : reader.GetInt32(0),
                 InventoryNumber = reader.IsDBNull(1) ? null : reader.GetString(1),
                 Name = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                AssetGroup = reader.IsDBNull(3) ? AssetGroup.Vehicle : (AssetGroup)reader.GetByte(3),
-                // REFACTOR: Маппим VehicleBrand->Manufacturer, VehicleModel->Model, VinNumber->SerialNumber, ManufactureYear->YearOfManufacture
-                Manufacturer = reader.IsDBNull(4) ? null : reader.GetString(4),
-                Model = reader.IsDBNull(5) ? null : reader.GetString(5),
+                AssetGroup = assetGroup,
+                Subcategory = subcategory,
+                Manufacturer = manufacturer,
+                Model = model,
                 SerialNumber = reader.IsDBNull(6) ? null : reader.GetString(6),
                 YearOfManufacture = reader.IsDBNull(7) ? (int?)null : reader.GetInt32(7),
-                // Пробуем получить MonthlyRentalRate из DailyRate
-                MonthlyRentalRate = dailyRate * 30, // DailyRate * 30 days
-                PurchasePrice = 0, // Нет в БД, устанавливаем 0
-                ResidualValue = 0, // Нет в БД, устанавливаем 0
+                MonthlyRentalRate = monthlyRate > 0 ? monthlyRate : dailyRate * 30,
+                PurchasePrice = purchasePrice,
+                ResidualValue = residualValue,
                 IsAvailable = reader.IsDBNull(11) ? true : reader.GetBoolean(11),
                 Description = reader.IsDBNull(12) ? null : reader.GetString(12),
                 HourlyRate = hourlyRate,
@@ -632,18 +699,17 @@ namespace ForVlad.Data
                 VehicleSubcategory = reader.IsDBNull(13) ? null : (VehicleSubcategory?)reader.GetByte(13),
                 EquipmentSubcategory = reader.IsDBNull(14) ? null : (EquipmentSubcategory?)reader.GetByte(14),
                 EquipmentType = reader.IsDBNull(15) ? null : reader.GetString(15),
-                // Новые поля из БД
                 EnginePower = reader.IsDBNull(16) ? null : (decimal?)reader.GetDecimal(16),
                 RegistrationNumber = reader.IsDBNull(17) ? null : reader.GetString(17),
                 Weight = reader.IsDBNull(18) ? null : (decimal?)reader.GetDecimal(18),
                 PowerRequirements = reader.IsDBNull(19) ? null : reader.GetString(19),
                 CreatedDate = reader.IsDBNull(20) ? DateTime.Now : reader.GetDateTime(20),
                 ModifiedDate = reader.IsDBNull(21) ? (DateTime?)null : reader.GetDateTime(21),
-                IsDeleted = false // В БД нет IsDeleted, считаем что все активны
+                IsDeleted = false
             };
         }
         
-        private void AddAssetParameters(SqlCommand command, Asset asset, decimal hourlyRate, decimal dailyRate)
+        private void AddAssetParameters(SqlCommand command, Asset asset, decimal hourlyRate, decimal dailyRate, decimal monthlyRate)
         {
             // БД использует VehicleBrand, VehicleModel, VinNumber, ManufactureYear
             // REFACTOR: Исправление для CHECK ограничений - пустые строки преобразуем в NULL
@@ -660,6 +726,8 @@ namespace ForVlad.Data
             
             command.Parameters.AddWithValue("@VehicleBrand", string.IsNullOrEmpty(vehicleBrand) ? (object)DBNull.Value : vehicleBrand);
             command.Parameters.AddWithValue("@VehicleModel", string.IsNullOrEmpty(vehicleModel) ? (object)DBNull.Value : vehicleModel);
+            command.Parameters.AddWithValue("@Manufacturer", string.IsNullOrEmpty(asset.Manufacturer) ? (object)DBNull.Value : asset.Manufacturer);
+            command.Parameters.AddWithValue("@Model", string.IsNullOrEmpty(asset.Model) ? (object)DBNull.Value : asset.Model);
             command.Parameters.AddWithValue("@VinNumber", string.IsNullOrEmpty(asset.SerialNumber) ? (object)DBNull.Value : asset.SerialNumber);
             if (asset.YearOfManufacture.HasValue)
                 command.Parameters.AddWithValue("@ManufactureYear", asset.YearOfManufacture.Value);
@@ -667,6 +735,9 @@ namespace ForVlad.Data
                 command.Parameters.AddWithValue("@ManufactureYear", DBNull.Value);
             command.Parameters.AddWithValue("@HourlyRate", hourlyRate);
             command.Parameters.AddWithValue("@DailyRate", dailyRate);
+            command.Parameters.AddWithValue("@MonthlyRate", monthlyRate);
+            command.Parameters.AddWithValue("@PurchasePrice", asset.PurchasePrice);
+            command.Parameters.AddWithValue("@ResidualValue", asset.ResidualValue);
             command.Parameters.AddWithValue("@AssetCondition", (int)asset.AssetCondition);
             command.Parameters.AddWithValue("@IsAvailable", asset.IsAvailable);
             command.Parameters.AddWithValue("@Description", string.IsNullOrEmpty(asset.Description) ? (object)DBNull.Value : asset.Description);

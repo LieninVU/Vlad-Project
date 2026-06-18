@@ -254,8 +254,8 @@ namespace ForVlad.ViewModels
                 PurchasePrice = 0,
                 ResidualValue = 0,
                 MonthlyRentalRate = 0,
-                HourlyRate = 1000, // Значение по умолчанию для соблюдения ограничения CHECK > 0
-                DailyRate = 8000, // Значение по умолчанию для соблюдения ограничения CHECK > 0
+                HourlyRate = 0,
+                DailyRate = 0,
                 IsAvailable = true,
                 CreatedDate = DateTime.Now,
                 IsDeleted = false
@@ -263,6 +263,7 @@ namespace ForVlad.ViewModels
 
             UpdateDialogSubcategories();
             DialogTitle = "Новая техника";
+            OnPropertyChanged(nameof(EditingAsset));
             IsDialogOpen = true;
         }
         
@@ -274,6 +275,7 @@ namespace ForVlad.ViewModels
             EditingAsset = CloneAsset(SelectedAsset);
             UpdateDialogSubcategories();
             DialogTitle = "Редактирование техники";
+            OnPropertyChanged(nameof(EditingAsset));
             IsDialogOpen = true;
         }
         
