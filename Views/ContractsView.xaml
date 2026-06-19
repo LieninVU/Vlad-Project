@@ -252,8 +252,7 @@
                             <ColumnDefinition Width="150"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
+<Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -267,29 +266,16 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        
+
                         <!-- Номер договора -->
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Номер договора:" VerticalAlignment="Center"/>
                         <TextBox Grid.Row="0" Grid.Column="1" 
                                  Text="{Binding EditingContract.ContractNumber, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="5"/>
-                        
-                        <!-- Тип договора -->
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Тип договора:" VerticalAlignment="Center"/>
-<ComboBox Grid.Row="1" Grid.Column="1"
-                                  ItemsSource="{Binding ContractTypes}"
-                                  SelectedItem="{Binding EditingContract.ContractType}"
-                                  Margin="5">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
 
                         <!-- Статус -->
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Статус:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="2" Grid.Column="1"
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Статус:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1"
                                   ItemsSource="{Binding Statuses}"
                                   SelectedItem="{Binding EditingContract.Status}"
                                   Margin="5">
@@ -301,8 +287,8 @@
                         </ComboBox>
                         
                         <!-- Контрагент -->
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Контрагент:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="3" Grid.Column="1"
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Контрагент:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1"
                                   ItemsSource="{Binding Counterparties}"
                                   SelectedValue="{Binding EditingContract.CounterpartyId}"
                                   SelectedValuePath="Id"
@@ -310,35 +296,35 @@
                                   Margin="5"/>
                         
                         <!-- Дата подписания -->
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Дата подписания:" VerticalAlignment="Center"/>
-                        <DatePicker Grid.Row="4" Grid.Column="1"
-                                    SelectedDate="{Binding EditingContract.SignedDate}"
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Дата подписания:" VerticalAlignment="Center"/>
+<DatePicker Grid.Row="3" Grid.Column="1"
+                                     SelectedDate="{Binding EditingContract.SignedDate}"
                                     Margin="5"/>
                         
                         <!-- Дата начала -->
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Дата начала:" VerticalAlignment="Center"/>
-                        <DatePicker Grid.Row="5" Grid.Column="1"
-                                    SelectedDate="{Binding EditingContract.StartDate}"
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Дата начала:" VerticalAlignment="Center"/>
+<DatePicker Grid.Row="4" Grid.Column="1"
+                                     SelectedDate="{Binding EditingContract.StartDate}"
                                     Margin="5"/>
                         
                         <!-- Дата окончания -->
-                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Дата окончания:" VerticalAlignment="Center"/>
-                        <DatePicker Grid.Row="6" Grid.Column="1"
-                                    SelectedDate="{Binding EditingContract.EndDate}"
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Дата окончания:" VerticalAlignment="Center"/>
+<DatePicker Grid.Row="5" Grid.Column="1"
+                                     SelectedDate="{Binding EditingContract.EndDate}"
                                     Margin="5"/>
                         
                         <!-- Продолжительность (автоматически) -->
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Продолжительность:" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="7" Grid.Column="1"
-                                    Text="{Binding DurationDisplay}"
-                                    FontWeight="Bold"
-                                    Foreground="#2C3E50"
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Продолжительность:" VerticalAlignment="Center"/>
+<TextBlock Grid.Row="6" Grid.Column="1"
+                                     Text="{Binding DurationDisplay}"
+                                     FontWeight="Bold"
+                                     Foreground="#2C3E50"
                                     Margin="8"
                                     VerticalAlignment="Center"/>
 
                         <!-- Техника (для аренды) -->
-                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Техника:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="8" Grid.Column="1"
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Техника:" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="7" Grid.Column="1"
                                   ItemsSource="{Binding Assets}"
                                   SelectedItem="{Binding SelectedAsset}"
                                   Margin="5">
@@ -354,20 +340,20 @@
                         </ComboBox>
 
                         <!-- Сумма -->
-                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Сумма без НДС:" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="9" Grid.Column="1"
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Сумма без НДС:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="8" Grid.Column="1"
                                  Text="{Binding EditingContract.TotalAmount, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="5"/>
 
                         <!-- НДС -->
-                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Сумма НДС:" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="10" Grid.Column="1"
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Сумма НДС:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="9" Grid.Column="1"
                                  Text="{Binding EditingContract.VATAmount, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="5"/>
 
                         <!-- Примечания -->
-                        <TextBlock Grid.Row="11" Grid.Column="0" Text="Примечания:" VerticalAlignment="Top" Margin="0,8,0,0"/>
-                        <TextBox Grid.Row="11" Grid.Column="1"
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Примечания:" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                        <TextBox Grid.Row="10" Grid.Column="1"
                                  Text="{Binding EditingContract.Notes, UpdateSourceTrigger=PropertyChanged}"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"

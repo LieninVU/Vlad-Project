@@ -113,7 +113,7 @@ CREATE TABLE Contracts
 (
     Id INT IDENTITY(1,1) NOT NULL,
     ContractNumber NVARCHAR(30) NOT NULL,
-    ContractType TINYINT NOT NULL,
+    ContractType TINYINT NOT NULL DEFAULT 0,
     ContractStatus TINYINT NOT NULL,
     CounterpartyId INT NOT NULL,
     SignedDate DATE NOT NULL,

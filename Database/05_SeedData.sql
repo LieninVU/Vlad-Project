@@ -148,13 +148,13 @@ VALUES
      450000.00, N'Аванс 30%, остальное ежемесячно', N'Договор аренды экскаватора', GETDATE());
 GO
 
--- Договор 2: Лизинг (LS = Leasing, ContractType = 1, Status = 1 = Signed)
+-- Договор 2: Аренда (ContractType = 0, Status = 1 = Signed)
 INSERT INTO Contracts (Id, ContractNumber, ContractType, ContractStatus, CounterpartyId, 
                        SignedDate, StartDate, EndDate, TotalAmount, PaymentTerms, Notes, CreatedAt)
 VALUES 
-    (2, N'LS-2024-002', 1, 1, 2,
+    (2, N'AR-2024-002', 0, 1, 2,
      CAST(GETDATE() - 10 AS DATE), CAST(GETDATE() - 5 AS DATE), CAST(GETDATE() + 355 AS DATE),
-     360000.00, N'Ежемесячные платежи', N'Договор лизинга генератора', GETDATE());
+     360000.00, N'Ежемесячные платежи', N'Договор аренды генератора', GETDATE());
 GO
 
 -- Договор 3: Черновик (DR = Draft, ContractType = 0, Status = 0 = Draft)

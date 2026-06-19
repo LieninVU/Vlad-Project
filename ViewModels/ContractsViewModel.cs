@@ -138,9 +138,8 @@ namespace ForVlad.ViewModels
         // Списки для ComboBox
         public ObservableCollection<Counterparty> Counterparties { get; }
         public ObservableCollection<ContractStatus> Statuses { get; }
-        public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
-        public ObservableCollection<ContractType> ContractTypes { get; }
-        
+public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
+
         // Команды
         public ICommand AddContractCommand { get; }
         public ICommand EditContractCommand { get; }
@@ -164,7 +163,6 @@ namespace ForVlad.ViewModels
             Counterparties = new ObservableCollection<Counterparty>();
             Statuses = new ObservableCollection<ContractStatus>();
             StatusFilterOptions = new ObservableCollection<ContractStatus?>();
-            ContractTypes = new ObservableCollection<ContractType>();
             Assets = new ObservableCollection<Asset>();
             PeriodTypes = new ObservableCollection<PeriodType>();
 
@@ -173,11 +171,6 @@ namespace ForVlad.ViewModels
             {
                 Statuses.Add(status);
                 StatusFilterOptions.Add(status);
-            }
-
-            foreach (ContractType type in Enum.GetValues(typeof(ContractType)))
-            {
-                ContractTypes.Add(type);
             }
 
             foreach (PeriodType type in Enum.GetValues(typeof(PeriodType)))

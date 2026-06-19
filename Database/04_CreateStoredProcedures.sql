@@ -64,7 +64,6 @@ GO
 
 -- 3. Создание договора с графиком платежей
 CREATE OR ALTER PROCEDURE sp_CreateContractWithPayments
-    @ContractType TINYINT,
     @CounterpartyId INT,
     @SignedDate DATE,
     @StartDate DATE,
@@ -82,11 +81,11 @@ BEGIN
         
         DECLARE @ContractNumber NVARCHAR(30);
         DECLARE @CurrentYear INT = YEAR(@SignedDate);
-        EXEC sp_GenerateContractNumber @ContractType, @CurrentYear, @ContractNumber OUTPUT;
+        EXEC sp_GenerateContractNumber @CurrentYear, @ContractNumber OUTPUT;
         
         INSERT INTO Contracts (ContractNumber, ContractType, ContractStatus, CounterpartyId, 
                               SignedDate, StartDate, EndDate, TotalAmount, PaymentTerms, Notes)
-        VALUES (@ContractNumber, @ContractType, 0, @CounterpartyId,
+        VALUES (@ContractNumber, 0, 0, @CounterpartyId,
                 @SignedDate, @StartDate, @EndDate, @TotalAmount, @PaymentTerms, @Notes);
         
         SET @NewContractId = SCOPE_IDENTITY();

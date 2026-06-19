@@ -2047,7 +2047,7 @@ string sql = @"
         
         public string GenerateContractNumber(ContractType contractType)
         {
-            var prefix = contractType == ContractType.Rental ? "AR" : "LS";
+            var prefix = "AR";
             return $"{prefix}-{DateTime.Now:yyyy}-{new Random().Next(1, 999):000}";
         }
         
