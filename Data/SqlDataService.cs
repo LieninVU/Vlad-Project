@@ -623,20 +623,39 @@ string sql = @"
         
         public void DeleteAsset(int id)
         {
-            // В БД нет IsDeleted, но есть IsAvailable
-            // Помечаем как недоступный (альтернатива удалению)
-            // Либо можно использоватьsoft delete через дополнительное поле
-            // Пока просто устанавливаем IsAvailable = 0
-            string sql = "UPDATE Assets SET IsAvailable = 0, UpdatedAt = @UpdatedAt WHERE Id = @Id";
+            // Проверяем, используется ли актив в договорах
+            string checkSql = "SELECT COUNT(*) FROM ContractSpecifications WHERE AssetId = @Id";
             
             using (var connection = new SqlConnection(_connectionString))
             {
-                using (var command = new SqlCommand(sql, connection))
+                using (var checkCommand = new SqlCommand(checkSql, connection))
                 {
-                    command.Parameters.AddWithValue("@Id", id);
-                    command.Parameters.AddWithValue("@UpdatedAt", DateTime.Now);
+                    checkCommand.Parameters.AddWithValue("@Id", id);
                     connection.Open();
-                    command.ExecuteNonQuery();
+                    int specCount = (int)checkCommand.ExecuteScalar();
+                    
+                    if (specCount > 0)
+                    {
+                        // Актив используется в договорах, используем мягкое удаление
+                        string softDeleteSql = "UPDATE Assets SET IsAvailable = 0, UpdatedAt = @UpdatedAt WHERE Id = @Id";
+                        using (var softDeleteCommand = new SqlCommand(softDeleteSql, connection))
+                        {
+                            softDeleteCommand.Parameters.AddWithValue("@Id", id);
+                            softDeleteCommand.Parameters.AddWithValue("@UpdatedAt", DateTime.Now);
+                            softDeleteCommand.ExecuteNonQuery();
+                        }
+                        throw new InvalidOperationException($"Этот актив используется в {specCount} договоре(ах) и был помечен как недоступный вместо удаления.");
+                    }
+                    else
+                    {
+                        // Актив не используется, удаляем физически
+                        string deleteSql = "DELETE FROM Assets WHERE Id = @Id";
+                        using (var deleteCommand = new SqlCommand(deleteSql, connection))
+                        {
+                            deleteCommand.Parameters.AddWithValue("@Id", id);
+                            deleteCommand.ExecuteNonQuery();
+                        }
+                    }
                 }
             }
         }
@@ -957,17 +976,34 @@ string sql = @"
         
         public void DeleteContract(int id)
         {
-            // В БД нет IsDeleted
-            // Используем мягкое удаление через UpdatedAt
-            string sql = "UPDATE Contracts SET UpdatedAt = @UpdatedAt WHERE Id = @Id";
+            // Физическое удаление записи из базы данных
+            // Сначала удаляем связанные спецификации и график платежей
+            string deleteSpecsSql = "DELETE FROM ContractSpecifications WHERE ContractId = @Id";
+            string deletePaymentsSql = "DELETE FROM PaymentSchedules WHERE ContractId = @Id";
+            string deleteContractSql = "DELETE FROM Contracts WHERE Id = @Id";
             
             using (var connection = new SqlConnection(_connectionString))
             {
-                using (var command = new SqlCommand(sql, connection))
+                connection.Open();
+                
+                // Удаляем спецификации
+                using (var command = new SqlCommand(deleteSpecsSql, connection))
                 {
                     command.Parameters.AddWithValue("@Id", id);
-                    command.Parameters.AddWithValue("@UpdatedAt", DateTime.Now);
-                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+                
+                // Удаляем график платежей
+                using (var command = new SqlCommand(deletePaymentsSql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    command.ExecuteNonQuery();
+                }
+                
+                // Удаляем договор
+                using (var command = new SqlCommand(deleteContractSql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
                     command.ExecuteNonQuery();
                 }
             }

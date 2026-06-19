@@ -419,8 +419,18 @@ namespace ForVlad.ViewModels
             
             if (result == MessageBoxResult.Yes)
             {
-                _dataService.DeleteAsset(SelectedAsset.Id);
-                LoadAssets();
+                try
+                {
+                    _dataService.DeleteAsset(SelectedAsset.Id);
+                    LoadAssets();
+                    MessageBox.Show("Техника успешно удалена", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Актив используется в договорах, был помечен как недоступный
+                    LoadAssets();
+                    MessageBox.Show(ex.Message, "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
         
