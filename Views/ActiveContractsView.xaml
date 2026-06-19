@@ -111,8 +111,7 @@
                     <DataGridTemplateColumn Header="Тип" Width="85" MinWidth="80">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding ContractType, Converter={StaticResource EnumToRussianConverter}}" FontWeight="Bold"
-                                           Foreground="{Binding ContractType, Converter={StaticResource ContractTypeToColorConverter}}"/>
+                                <TextBlock Text="{Binding ContractType, Converter={StaticResource EnumToRussianConverter}}" FontWeight="Bold"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

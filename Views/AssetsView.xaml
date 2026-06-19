@@ -26,7 +26,6 @@
             <Setter Property="MinWidth" Value="120"/>
         </Style>
         
-        <converters:BoolToAvailabilityColorConverter x:Key="BoolToAvailabilityColorConverter" />
         <converters:BoolToAvailableTextConverter x:Key="BoolToAvailableTextConverter" />
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
         <converters:IntToVisibilityInverseConverter x:Key="IntToVisibilityInverseConverter" />
@@ -224,21 +223,7 @@
                                             Width="95"
                                             MinWidth="90"/>
                         
-                        <DataGridTemplateColumn Header="Доступность" Width="95" MinWidth="95">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border Background="{Binding IsAvailable, Converter={StaticResource BoolToAvailabilityColorConverter}}"
-                                            CornerRadius="3"
-                                            Padding="4,2"
-                                            HorizontalAlignment="Left">
-                                        <TextBlock Text="{Binding IsAvailable, Converter={StaticResource BoolToAvailableTextConverter}}"
-                                                   Foreground="White"
-                                                   FontWeight="SemiBold"
-                                                   FontSize="11"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Доступность" Binding="{Binding IsAvailable, Converter={StaticResource BoolToAvailableTextConverter}}" Width="95" MinWidth="95"/>
                         
                         <DataGridTemplateColumn Header="Действия" Width="75" MinWidth="75">
                             <DataGridTemplateColumn.CellTemplate>
