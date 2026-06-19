@@ -10,6 +10,99 @@
 
 Это означает, что ваша база данных была создана по старым SQL скриптам и не содержит нового столбца `PaymentScheduleType` в таблице `Contracts`.
 
+---
+
+## 📝 Миграция для удаления поля Status (Версия 1.1)
+
+В версии 1.1 было полностью удалено поле `ContractStatus` из таблицы Contracts для упрощения логики приложения.
+
+### 🔄 Миграция для удаления ContractStatus
+
+Если у вас есть база данных с полем `ContractStatus`, выполните следующий скрипт:
+
+```sql
+USE LeasingSystem;
+GO
+
+-- Удаляем столбец ContractStatus, если он существует
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Contracts') AND name = 'ContractStatus')
+BEGIN
+    -- Удаляем дефолтное ограничение
+    DECLARE @constraint_name NVARCHAR(128);
+    SELECT @constraint_name = name FROM sys.default_constraints 
+    WHERE parent_object_id = OBJECT_ID('Contracts') AND parent_column_id = 
+        (SELECT column_id FROM sys.columns WHERE object_id = OBJECT_ID('Contracts') AND name = 'ContractStatus');
+    
+    IF @constraint_name IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE Contracts DROP CONSTRAINT ' + @constraint_name);
+        PRINT 'Ограничение по умолчанию для ContractStatus удалено.';
+    END
+    
+    -- Удаляем столбец
+    ALTER TABLE Contracts DROP COLUMN ContractStatus;
+    PRINT 'Столбец ContractStatus удалён из таблицы Contracts.';
+END
+ELSE
+BEGIN
+    PRINT 'Столбец ContractStatus не существует.';
+END
+GO
+
+-- Удаляем функцию локализации, если она существует
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.fn_ContractStatusRu') AND type = 'FN')
+BEGIN
+    DROP FUNCTION dbo.fn_ContractStatusRu;
+    PRINT 'Функция fn_ContractStatusRu удалена.';
+END
+GO
+
+-- Удаляем вычисляемый столбец ContractStatusRu, если он существует
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Contracts') AND name = 'ContractStatusRu')
+BEGIN
+    ALTER TABLE Contracts DROP COLUMN ContractStatusRu;
+    PRINT 'Вычисляемый столбец ContractStatusRu удалён.');
+END
+GO
+
+-- Удаляем индекс с ContractStatus, если он существует
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Contracts_Status_Dates' AND object_id = OBJECT_ID('Contracts'))
+BEGIN
+    DROP INDEX IX_Contracts_Status_Dates ON Contracts;
+    PRINT 'Индекс IX_Contracts_Status_Dates удалён.';
+END
+GO
+
+-- Создаём новый индекс без ContractStatus
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Contracts_Dates' AND object_id = OBJECT_ID('Contracts'))
+BEGIN
+    CREATE INDEX IX_Contracts_Dates ON Contracts(StartDate, EndDate)
+        INCLUDE (ContractNumber, CounterpartyId, TotalAmount);
+    PRINT 'Индекс IX_Contracts_Dates создан.');
+END
+GO
+```
+
+### 🆕 Создание новой базы данных (рекомендуется для Status)
+
+Если у вас нет важных данных или вы только начинаете, проще создать новую базу данных:
+
+1. Удалите старую базу данных **LeasingSystem** через SSMS
+2. Выполните все SQL скрипты из папки **Database** в следующем порядке:
+   
+   | № | Файл | Описание |
+   |---|------|----------|
+   | 1 | 01_CreateDatabase.sql | Создание базы данных LeasingSystem |
+   | 2 | 02_CreateTables.sql | Создание всех таблиц (без ContractStatus) |
+   | 3 | 03_CreateConstraints.sql | Создание ограничений (без фильтров по Status) |
+   | 4 | 04_CreateStoredProcedures.sql | Создание хранимых процедур (без ContractStatus) |
+   | 5 | 05_SeedData.sql | Заполнение демонстрационными данными (без ContractStatus) |
+   | 6 | 07_CreateUsersTable.sql | Создание таблицы Users для аутентификации |
+
+3. Запустите приложение
+
+---
+
 ## ✅ Решения
 
 ### 🔄 Вариант 1: Выполнить миграционный скрипт (рекомендуется)
@@ -98,6 +191,12 @@
 | Таблица | Столбец | Тип | Описание | Значение по умолчанию |
 |---------|---------|-----|----------|---------------------|
 | Contracts | PaymentScheduleType | TINYINT | Тип графика платежей | 1 (Monthly) |
+
+### Удалённые столбцы (Версия 1.1)
+| Таблица | Столбец | Причина удаления |
+|---------|---------|-------------------|
+| Contracts | ContractStatus | Упрощение логики приложения |
+| Contracts | ContractStatusRu | Удалён вместе с ContractStatus |
 
 ### Новые таблицы
 | Таблица | Описание |

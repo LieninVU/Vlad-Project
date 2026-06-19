@@ -1,15 +1,15 @@
 # =============================================================================
-# DOCUMENTATION: LeasingSystem v1.0
+# DOCUMENTATION: LeasingSystem v1.1
 # DESCRIPTION: Информационная система учёта договоров аренды и лизинга 
 #              спецтехники и оборудования для ИП Апоста А.В.
 # FORMAT: Functional Specification (YAML)
-# DATE: 2026-01-01
+# DATE: 2026-06-19
 # AUTHOR: Sasha Bondarenko (преддипломная практика)
 # =============================================================================
 
 project:
   name: "LeasingSystem"
-  version: "1.0.0"
+  version: "1.1.0"
   description: "Система централизованного учёта договоров аренды и лизинга спецтехники"
   client: "ИП Андрей Владимирович Апоста"
   industry: "Аренда и лизинг сухопутных транспортных средств и оборудования"
@@ -503,26 +503,6 @@ data_models:
           Rental: "Аренда (краткосрочная)"
           Leasing: "Лизинг (долгосрочная с выкупом)"
           
-      Status:
-        type: "enum"
-        nullable: false
-        description: "Статус договора"
-        allowed_values:
-          Draft: "Черновик"
-          Signed: "Подписан"
-          Active: "Действует"
-          Suspended: "Приостановлен"
-          Completed: "Завершён"
-          Terminated: "Расторгнут"
-        default: "Draft"
-        workflow_transitions:
-          Draft: ["Signed", "Deleted"]
-          Signed: ["Active", "Terminated"]
-          Active: ["Suspended", "Completed", "Terminated"]
-          Suspended: ["Active", "Terminated"]
-          Completed: []
-          Terminated: []
-          
       CounterpartyId:
         type: "int"
         nullable: false
@@ -630,16 +610,15 @@ data_models:
       - name: "IX_Contract_Number"
         columns: ["ContractNumber"]
         unique: true
-      - name: "IX_Contract_Status_Dates"
-        columns: ["Status", "StartDate", "EndDate"]
+      - name: "IX_Contract_Dates"
+        columns: ["StartDate", "EndDate"]
       - name: "IX_Contract_Counterparty"
         columns: ["CounterpartyId"]
         
     business_rules:
-      - "Номер договора генерируется автоматически при смене статуса на Signed"
-      - "Нельзя активировать договор без хотя бы одной позиции спецификации"
+      - "Номер договора генерируется автоматически при создании"
+      - "Нельзя создать договор без хотя бы одной позиции спецификации"
       - "При изменении дат пересчитывать график платежей"
-      - "Завершённый договор нельзя редактировать, только просматривать"
 
 
   # ---------------------------

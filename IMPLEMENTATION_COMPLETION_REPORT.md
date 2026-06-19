@@ -1,8 +1,29 @@
 # Отчёт о завершении реализации плана
 
-**Дата:** 01.06.2026  
-**Версия:** 1.0  
+**Дата:** 19.06.2026  
+**Версия:** 1.1  
 **Статус:** ✅ Завершено
+
+---
+
+## 📝 Последние изменения (Версия 1.1)
+
+### ✅ Удаление поля Status из договоров
+В рамках упрощения логики приложения было полностью удалено поле "Статус" из функциональности договоров:
+
+**Изменения в модели и базе данных:**
+- Удалено свойство `Status` из модели `Contract.cs`
+- Удален enum `ContractStatus` из `Enums.cs`
+- Обновлены SQL скрипты для удаления `ContractStatus` из всех таблиц, представлений и хранимых процедур
+
+**Изменения в UI:**
+- Удалён фильтр по статусу и колонка "Статус" из ContractsView.xaml и ActiveContractsView.xaml
+- Удалена логика фильтрации по статусу из ContractsViewModel.cs и ActiveContractsViewModel.cs
+- Убраны цветовые индикаторы из интерфейса для улучшения читаемости
+
+**Изменения в сервисах:**
+- Удалены методы и конвертеры, связанные с ContractStatus
+- Обновлены все сервисы для работы без поля Status
 
 ---
 
@@ -192,10 +213,10 @@ GO
 
 ### SQL Скрипты
 - [x] 01_CreateDatabase.sql — OK
-- [x] 02_CreateTables.sql — OK (есть PaymentScheduleType)
-- [x] 03_CreateConstraints.sql — OK
-- [x] 04_CreateStoredProcedures.sql — OK (есть sp_CheckAssetAvailability, sp_GenerateContractNumber)
-- [x] 05_SeedData.sql — **ИСПРАВЛЕНО** (добавлен PaymentScheduleType)
+- [x] 02_CreateTables.sql — OK (есть PaymentScheduleType, удалён ContractStatus)
+- [x] 03_CreateConstraints.sql — OK (удалены фильтры по ContractStatus)
+- [x] 04_CreateStoredProcedures.sql — OK (есть sp_CheckAssetAvailability, sp_GenerateContractNumber, удалён ContractStatus)
+- [x] 05_SeedData.sql — **ИСПРАВЛЕНО** (добавлен PaymentScheduleType, удалён ContractStatus)
 - [x] 06_Migration_PaymentScheduleType.sql — **ИСПРАВЛЕНО** (удалены дубли)
 - [x] 07_CreateUsersTable.sql — OK
 

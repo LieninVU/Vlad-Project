@@ -1,5 +1,39 @@
 # Резюме реализации плановых задач (Приоритет 1 - Blockers)
 
+## 📝 Последние изменения (2025)
+
+### ✅ Удаление поля Status из договоров
+В рамках упрощения логики приложения было полностью удалено поле "Статус" из функциональности договоров:
+
+**Модель и база данных:**
+- Удалено свойство `Status` из модели `Contract.cs`
+- Удален enum `ContractStatus` из `Enums.cs`
+- Обновлены SQL скрипты:
+  - `02_CreateTables.sql` - удалён столбец `ContractStatus`, индекс, дефолтное значение, функция `fn_ContractStatusRu` и вычисляемый столбец
+  - `03_CreateConstraints.sql` - удалён индекс `IX_Contracts_Status_Dates`, обновлены представления (удалены фильтры по статусу)
+  - `04_CreateStoredProcedures.sql` - удалены все проверки и использования `ContractStatus` в хранимых процедурах
+  - `05_SeedData.sql` - удалён `ContractStatus` из INSERT statements
+
+**UI и ViewModels:**
+- `ContractsView.xaml` - удалён фильтр по статусу, колонка "Статус" в DataGrid и поле в диалоге редактирования
+- `ContractsViewModel.cs` - удалены свойства `FilterStatus`, `Statuses`, `StatusFilterOptions`, команда `ClearStatusFilterCommand` и вся логика фильтрации по статусу
+- `ActiveContractsView.xaml` - удалена колонка "Статус" из DataGrid
+- `ActiveContractsViewModel.cs` - удалена фильтрация по статусу и использование `Status` в экспорте
+- `CounterpartiesViewModel.cs` - удалена проверка статусов при удалении контрагента
+
+**Сервисы и конвертеры:**
+- `ReportCalculationService.cs` - удалён метод `IsOperatingContractStatus`
+- `EnumLocalization.cs` - удалён метод `ContractStatusToRussian`
+- `SimpleDataService.cs` - удалено использование `ContractStatus` в тестовых данных и проверках
+- `SqlDataService.cs` - удалены все ссылки на `ContractStatus` в SQL запросах, параметрах, MapContract и методах проверки доступности
+- `StatusConverters.cs` - удалён конвертер `StatusToColorConverter`
+
+**Улучшения UI:**
+- Убраны цветовые индикаторы из колонки "Тип" договоров для улучшения читаемости
+- Убраны цветовые индикаторы из ячейки "Доступность" в окне техники
+
+---
+
 ## Выполненные задачи
 
 ### ✅ 1.1 Добавить поле PaymentScheduleType в Contract + БД
