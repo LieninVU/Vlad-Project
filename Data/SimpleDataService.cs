@@ -368,7 +368,7 @@ namespace ForVlad.Data
                 foreach (var spec in specs)
                 {
                     var contract = GetContract(spec.ContractId);
-                    if (contract == null || !ReportCalculationService.IsOperatingContractStatus(contract.Status))
+                    if (contract == null)
                         continue;
                     if (!ReportCalculationService.ContractOverlapsPeriod(contract, periodStart, periodEnd))
                         continue;
@@ -504,7 +504,6 @@ namespace ForVlad.Data
                 Id = _contractId++,
                 ContractNumber = "АР-2024-001",
                 ContractType = ContractType.Rental,
-                Status = ContractStatus.Active,
                 CounterpartyId = 1,
                 SignedDate = DateTime.Now.AddDays(-30),
                 StartDate = DateTime.Now.AddDays(-30),
@@ -581,7 +580,6 @@ namespace ForVlad.Data
                 Id = _contractId++,
                 ContractNumber = "ЛЗ-2024-002",
                 ContractType = ContractType.Leasing,
-                Status = ContractStatus.Signed,
                 CounterpartyId = 2,
                 SignedDate = DateTime.Now.AddDays(-10),
                 StartDate = DateTime.Now.AddDays(-5),

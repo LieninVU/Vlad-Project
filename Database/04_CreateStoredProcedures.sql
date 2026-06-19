@@ -24,7 +24,6 @@ BEGIN
         INNER JOIN Contracts c ON cs.ContractId = c.Id
         WHERE cs.AssetId = @AssetId
             AND c.Id != ISNULL(@ExcludeContractId, -1)
-            AND c.ContractStatus IN (1, 2)
             AND @StartDate < ISNULL(c.EndDate, '9999-12-31')
             AND @EndDate > c.StartDate
     ) SET @IsAvailable = 0;
@@ -83,9 +82,9 @@ BEGIN
         DECLARE @CurrentYear INT = YEAR(@SignedDate);
         EXEC sp_GenerateContractNumber @CurrentYear, @ContractNumber OUTPUT;
         
-        INSERT INTO Contracts (ContractNumber, ContractType, ContractStatus, CounterpartyId, 
+        INSERT INTO Contracts (ContractNumber, ContractType, CounterpartyId, 
                               SignedDate, StartDate, EndDate, TotalAmount, PaymentTerms, Notes)
-        VALUES (@ContractNumber, 0, 0, @CounterpartyId,
+        VALUES (@ContractNumber, 0, @CounterpartyId,
                 @SignedDate, @StartDate, @EndDate, @TotalAmount, @PaymentTerms, @Notes);
         
         SET @NewContractId = SCOPE_IDENTITY();
@@ -181,7 +180,7 @@ BEGIN
         FROM PaymentSchedules ps
         WHERE ps.ContractId = c.Id
     ) overdue
-    WHERE cp.IsActive = 1 AND c.ContractStatus IN (1,2)
+    WHERE cp.IsActive = 1
     GROUP BY cp.Id, cp.Name, cp.Inn
     HAVING SUM(c.TotalAmount - ISNULL(paid.TotalPaid, 0)) > 0
     ORDER BY Balance DESC;
@@ -205,14 +204,14 @@ BEGIN
         (SELECT COUNT(*) FROM ContractSpecifications cs
          INNER JOIN Contracts c ON cs.ContractId = c.Id
          WHERE cs.AssetId = a.Id AND c.StartDate <= @EndDate 
-           AND ISNULL(c.EndDate, @EndDate) >= @StartDate AND c.ContractStatus IN (1,2,4)) AS RentalCount,
+           AND ISNULL(c.EndDate, @EndDate) >= @StartDate) AS RentalCount,
         ISNULL((SELECT SUM(DATEDIFF(DAY, 
                 CASE WHEN c.StartDate < @StartDate THEN @StartDate ELSE c.StartDate END,
                 CASE WHEN ISNULL(c.EndDate, @EndDate) > @EndDate THEN @EndDate ELSE ISNULL(c.EndDate, @EndDate) END))
                 FROM ContractSpecifications cs
                 INNER JOIN Contracts c ON cs.ContractId = c.Id
                 WHERE cs.AssetId = a.Id AND c.StartDate <= @EndDate 
-                  AND ISNULL(c.EndDate, @EndDate) >= @StartDate AND c.ContractStatus IN (1,2,4)), 0) AS BusyDays,
+                  AND ISNULL(c.EndDate, @EndDate) >= @StartDate), 0) AS BusyDays,
         DATEDIFF(DAY, @StartDate, @EndDate) + 1 AS TotalDays,
         CAST(ISNULL((SELECT SUM(DATEDIFF(DAY, 
                 CASE WHEN c.StartDate < @StartDate THEN @StartDate ELSE c.StartDate END,
@@ -220,7 +219,7 @@ BEGIN
                 FROM ContractSpecifications cs
                 INNER JOIN Contracts c ON cs.ContractId = c.Id
                 WHERE cs.AssetId = a.Id AND c.StartDate <= @EndDate 
-                  AND ISNULL(c.EndDate, @EndDate) >= @StartDate AND c.ContractStatus IN (1,2,4)), 0) 
+                  AND ISNULL(c.EndDate, @EndDate) >= @StartDate), 0) 
                 / (DATEDIFF(DAY, @StartDate, @EndDate) + 1) AS DECIMAL(5,2)) AS UtilizationPercentage,
         ISNULL((SELECT SUM(cs.UnitPrice * cs.Quantity * 
                 DATEDIFF(DAY, 
@@ -237,7 +236,7 @@ BEGIN
                 FROM ContractSpecifications cs
                 INNER JOIN Contracts c ON cs.ContractId = c.Id
                 WHERE cs.AssetId = a.Id AND c.StartDate <= @EndDate 
-                  AND ISNULL(c.EndDate, @EndDate) >= @StartDate AND c.ContractStatus IN (1,2,4)), 0) AS Revenue
+                  AND ISNULL(c.EndDate, @EndDate) >= @StartDate), 0) AS Revenue
     FROM Assets a
     WHERE a.IsAvailable = 1
     ORDER BY UtilizationPercentage DESC, Revenue DESC;
@@ -255,9 +254,9 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
-        IF EXISTS (SELECT 1 FROM Contracts WHERE CounterpartyId = @CounterpartyId AND ContractStatus IN (1,2))
+        IF EXISTS (SELECT 1 FROM Contracts WHERE CounterpartyId = @CounterpartyId)
         BEGIN
-            RAISERROR('Невозможно удалить контрагента с активными договорами.', 16, 1);
+            RAISERROR('Невозможно удалить контрагента с договорами.', 16, 1);
             RETURN;
         END
         UPDATE Counterparties SET IsActive = 0, UpdatedAt = GETDATE() WHERE Id = @CounterpartyId;
@@ -288,7 +287,7 @@ BEGIN
     BEGIN
         WITH ContractData AS (
             SELECT 
-                c.Id, c.TotalAmount, c.ContractStatus,
+                c.Id, c.TotalAmount,
                 ISNULL(paid.TotalPaid, 0) AS PaidAmount,
                 c.TotalAmount - ISNULL(paid.TotalPaid, 0) AS Balance
             FROM Contracts c
@@ -308,7 +307,6 @@ BEGIN
                SUM(PaidAmount),
                SUM(Balance)
         FROM ContractData
-        WHERE ContractStatus IN (1,2)
         UNION ALL
         SELECT 'Просроченные платежи',
                COUNT(*),

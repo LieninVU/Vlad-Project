@@ -26,8 +26,6 @@ namespace ForVlad.Services
         {
             switch (value)
             {
-                case ContractStatus status:
-                    return ContractStatusToRussian(status);
                 case ContractType type:
                     return ContractTypeToRussian(type);
                 case PaymentStatus paymentStatus:
@@ -61,20 +59,6 @@ namespace ForVlad.Services
                 return EquipmentSubcategoryToRussian(equipmentSubcategory);
 
             return subcategory;
-        }
-
-        public static string ContractStatusToRussian(ContractStatus status)
-        {
-            switch (status)
-            {
-                case ContractStatus.Draft: return "Черновик";
-                case ContractStatus.Signed: return "Подписан";
-                case ContractStatus.Active: return "Действующий";
-                case ContractStatus.Suspended: return "Приостановлен";
-                case ContractStatus.Completed: return "Завершён";
-                case ContractStatus.Terminated: return "Расторгнут";
-                default: return status.ToString();
-            }
         }
 
         public static string ContractTypeToRussian(ContractType type)

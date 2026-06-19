@@ -48,13 +48,6 @@ namespace ForVlad.Services
             return contract.StartDate.Date <= rangeEnd.Date && contractEnd >= rangeStart.Date;
         }
 
-        public static bool IsOperatingContractStatus(ContractStatus status)
-        {
-            return status == ContractStatus.Active ||
-                   status == ContractStatus.Signed ||
-                   status == ContractStatus.Suspended;
-        }
-
         public static (DateTime start, DateTime end) ResolvePeriod(string periodKind, DateTime? customStart, DateTime? customEnd)
         {
             var today = DateTime.Today;

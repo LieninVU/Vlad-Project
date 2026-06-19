@@ -116,16 +116,6 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="Статус" Width="100" MinWidth="90">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
-                                        CornerRadius="3" Padding="4,2" HorizontalAlignment="Left">
-                                    <TextBlock Text="{Binding Status, Converter={StaticResource EnumToRussianConverter}}" Foreground="White" FontWeight="SemiBold" FontSize="11"/>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Начало" Binding="{Binding StartDate, StringFormat=dd.MM.yyyy}" Width="90" MinWidth="85"/>
                     <DataGridTextColumn Header="Окончание" Binding="{Binding EndDate, StringFormat=dd.MM.yyyy}" Width="90" MinWidth="85"/>
                     <DataGridTextColumn Header="Осталось" Binding="{Binding EndDate, Converter={StaticResource DaysRemainingConverter}}" Width="85" MinWidth="80"/>

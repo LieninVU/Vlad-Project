@@ -22,9 +22,6 @@ namespace ForVlad.Models
 
     public enum ContractType { Rental, Leasing }
     
-    /// <summary>Соответствует TINYINT в таблице Contracts (0=Draft, 1=Signed, 2=Active, ...).</summary>
-    public enum ContractStatus { Draft, Signed, Active, Suspended, Completed, Terminated }
-    
     public enum PaymentStatus { Pending, Paid, Overdue, Cancelled }
     
     public enum AssetCondition { New, Good, Satisfactory, NeedsRepair, OutOfOrder }

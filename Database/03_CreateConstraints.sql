@@ -146,8 +146,8 @@ PRINT 'Старые вычисляемые столбцы удалены (есл
 GO
 
 -- Создаём дополнительные индексы (исправленный блок)
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Contracts_Status_Dates' AND object_id = OBJECT_ID('Contracts'))
-    CREATE INDEX IX_Contracts_Status_Dates ON Contracts(ContractStatus, StartDate, EndDate)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Contracts_Dates' AND object_id = OBJECT_ID('Contracts'))
+    CREATE INDEX IX_Contracts_Dates ON Contracts(StartDate, EndDate)
     INCLUDE (ContractNumber, CounterpartyId, TotalAmount);
 GO
 
@@ -180,8 +180,6 @@ SELECT
     c.ContractNumber,
     c.ContractType,
     dbo.fn_ContractTypeRu(c.ContractType) AS ContractTypeRu,
-    c.ContractStatus,
-    dbo.fn_ContractStatusRu(c.ContractStatus) AS ContractStatusRu,
     cp.Name AS CounterpartyName,
     cp.Inn AS CounterpartyInn,
     c.SignedDate,
@@ -204,8 +202,7 @@ SELECT
     END AS IsExpired,
     (SELECT COUNT(*) FROM PaymentSchedules ps WHERE ps.ContractId = c.Id AND ps.IsPaid = 0 AND ps.DueDate < GETDATE()) AS OverduePaymentsCount
 FROM Contracts c
-INNER JOIN Counterparties cp ON c.CounterpartyId = cp.Id
-WHERE c.ContractStatus IN (1, 2);
+INNER JOIN Counterparties cp ON c.CounterpartyId = cp.Id;
 GO
 
 CREATE VIEW vw_AssetUtilization AS
@@ -232,7 +229,7 @@ SELECT
     (SELECT ISNULL(SUM(cs.Quantity * cs.UnitPrice), 0) FROM ContractSpecifications cs WHERE cs.AssetId = a.Id) AS TotalRevenue,
     (SELECT MAX(c.EndDate) FROM Contracts c 
      INNER JOIN ContractSpecifications cs ON c.Id = cs.ContractId 
-     WHERE cs.AssetId = a.Id AND c.ContractStatus IN (1, 2)) AS LastRentalDate
+     WHERE cs.AssetId = a.Id) AS LastRentalDate
 FROM Assets a;
 GO
 
@@ -259,8 +256,7 @@ FROM PaymentSchedules ps
 INNER JOIN Contracts c ON ps.ContractId = c.Id
 INNER JOIN Counterparties cp ON c.CounterpartyId = cp.Id
 WHERE ps.IsPaid = 0 
-    AND ps.DueDate < GETDATE()
-    AND c.ContractStatus IN (1, 2);
+    AND ps.DueDate < GETDATE();
 GO
 
 CREATE VIEW vw_ContractsLocalized AS
@@ -269,8 +265,6 @@ SELECT
     c.ContractNumber,
     c.ContractType,
     dbo.fn_ContractTypeRu(c.ContractType) AS ContractTypeRu,
-    c.ContractStatus,
-    dbo.fn_ContractStatusRu(c.ContractStatus) AS ContractStatusRu,
     cp.Name AS CounterpartyName,
     cp.Inn AS CounterpartyInn,
     dbo.fn_CounterpartyTypeRu(cp.CounterpartyType) AS CounterpartyTypeRu,

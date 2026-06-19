@@ -114,7 +114,6 @@ CREATE TABLE Contracts
     Id INT IDENTITY(1,1) NOT NULL,
     ContractNumber NVARCHAR(30) NOT NULL,
     ContractType TINYINT NOT NULL DEFAULT 0,
-    ContractStatus TINYINT NOT NULL,
     CounterpartyId INT NOT NULL,
     SignedDate DATE NOT NULL,
     StartDate DATE NOT NULL,
@@ -131,10 +130,8 @@ CREATE TABLE Contracts
 );
 GO
 
-ALTER TABLE Contracts ADD CONSTRAINT DF_Contracts_ContractStatus DEFAULT (0) FOR ContractStatus;
 ALTER TABLE Contracts ADD CONSTRAINT DF_Contracts_CreatedAt DEFAULT (GETDATE()) FOR CreatedAt;
 
-CREATE INDEX IX_Contracts_ContractStatus ON Contracts(ContractStatus);
 CREATE INDEX IX_Contracts_StartDate_EndDate ON Contracts(StartDate, EndDate);
 CREATE INDEX IX_Contracts_CounterpartyId ON Contracts(CounterpartyId);
 GO
@@ -315,12 +312,6 @@ GO
 PRINT 'Создание функций русской локализации...';
 GO
 
-CREATE OR ALTER FUNCTION dbo.fn_ContractStatusRu(@Value TINYINT)
-RETURNS NVARCHAR(50) WITH SCHEMABINDING AS BEGIN RETURN CASE @Value
-    WHEN 0 THEN N'Черновик' WHEN 1 THEN N'Подписан' WHEN 2 THEN N'Действующий'
-    WHEN 3 THEN N'Приостановлен' WHEN 4 THEN N'Завершён' WHEN 5 THEN N'Расторгнут'
-    ELSE N'Неизвестно' END; END;
-GO
 
 CREATE OR ALTER FUNCTION dbo.fn_ContractTypeRu(@Value TINYINT)
 RETURNS NVARCHAR(50) WITH SCHEMABINDING AS BEGIN RETURN CASE @Value
@@ -404,9 +395,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Contracts'
     ALTER TABLE Contracts ADD ContractTypeRu AS dbo.fn_ContractTypeRu(ContractType) PERSISTED;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Contracts') AND name = 'ContractStatusRu')
-    ALTER TABLE Contracts ADD ContractStatusRu AS dbo.fn_ContractStatusRu(ContractStatus) PERSISTED;
-GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('PaymentSchedules') AND name = 'IsPaidRu')
     ALTER TABLE PaymentSchedules ADD IsPaidRu AS dbo.fn_BooleanRu(IsPaid) PERSISTED;

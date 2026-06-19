@@ -179,7 +179,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Наименование:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"><Run Text="Наименование:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/></TextBlock>
                             <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditingCounterparty.Name, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>
                             
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Тип:" VerticalAlignment="Center"/>
@@ -192,7 +192,7 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
                             
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="ИНН:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"><Run Text="ИНН:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/></TextBlock>
                             <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditingCounterparty.INN, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>
                             
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="КПП:" VerticalAlignment="Center"/>

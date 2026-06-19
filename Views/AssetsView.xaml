@@ -345,17 +345,17 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Инв. номер:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"><Run Text="Инв. номер:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/></TextBlock>
                             <TextBox Grid.Row="0" Grid.Column="1" 
                                      Text="{Binding EditingAsset.InventoryNumber, UpdateSourceTrigger=PropertyChanged}"
                                      Margin="5"/>
                             
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Наименование:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"><Run Text="Наименование:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/></TextBlock>
                             <TextBox Grid.Row="1" Grid.Column="1" 
                                      Text="{Binding EditingAsset.Name, UpdateSourceTrigger=PropertyChanged}"
                                      Margin="5"/>
                             
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Категория:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"><Run Text="Категория:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/></TextBlock>
 <ComboBox Grid.Row="2" Grid.Column="1"
                                       ItemsSource="{Binding Categories}"
                                       SelectedItem="{Binding DialogAssetGroup}"
@@ -367,7 +367,7 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Подкатегория:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center"><Run Text="Подкатегория:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/></TextBlock>
                         <ComboBox Grid.Row="3" Grid.Column="1"
                                   ItemsSource="{Binding DialogSubcategories}"
                                   SelectedItem="{Binding EditingAsset.Subcategory}"
@@ -409,7 +409,7 @@
                                      Text="{Binding EditingAsset.ResidualValue, UpdateSourceTrigger=PropertyChanged}"
                                      Margin="5"/>
                             
-                            <TextBlock Grid.Row="10" Grid.Column="0" Text="Аренда/мес:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="10" Grid.Column="0" VerticalAlignment="Center"><Run Text="Аренда/мес:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/></TextBlock>
                             <TextBox Grid.Row="10" Grid.Column="1"
                                      Text="{Binding EditingAsset.MonthlyRentalRate, UpdateSourceTrigger=PropertyChanged}"
                                      Margin="5"/>

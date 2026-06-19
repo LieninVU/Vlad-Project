@@ -123,13 +123,8 @@ namespace ForVlad.ViewModels
             
             foreach (var contract in contracts)
             {
-                if (contract.Status == ContractStatus.Active ||
-                    contract.Status == ContractStatus.Signed ||
-                    contract.Status == ContractStatus.Suspended)
-                {
-                    EnrichContract(contract);
-                    ActiveContracts.Add(contract);
-                }
+                EnrichContract(contract);
+                ActiveContracts.Add(contract);
             }
             
             FilterContracts();
@@ -208,7 +203,6 @@ namespace ForVlad.ViewModels
                 Id = contract.Id,
                 ContractNumber = contract.ContractNumber,
                 ContractType = contract.ContractType,
-                Status = contract.Status,
                 CounterpartyId = contract.CounterpartyId,
                 CounterpartyDisplayName = contract.CounterpartyDisplayName,
                 SignedDate = contract.SignedDate,
@@ -245,13 +239,12 @@ namespace ForVlad.ViewModels
             if (dialog.ShowDialog() != true)
                 return;
             
-            var headers = new[] { "Номер", "Контрагент", "Тип", "Статус", "Начало", "Окончание", "Сумма", "С НДС" };
+            var headers = new[] { "Номер", "Контрагент", "Тип", "Начало", "Окончание", "Сумма", "С НДС" };
             var rows = FilteredContracts.Select(c => new[]
             {
                 c.ContractNumber,
                 c.CounterpartyDisplayName ?? "",
                 EnumLocalization.ContractTypeToRussian(c.ContractType),
-                EnumLocalization.ContractStatusToRussian(c.Status),
                 c.StartDate.ToString("dd.MM.yyyy"),
                 c.EndDate?.ToString("dd.MM.yyyy") ?? "",
                 c.TotalAmount.ToString("N2"),

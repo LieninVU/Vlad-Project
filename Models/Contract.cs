@@ -8,8 +8,7 @@ namespace ForVlad.Models
         public int Id { get; set; }
         public string ContractNumber { get; set; } // Уникальный номер (например, АР-2024-001)
         public ContractType ContractType { get; set; }
-        public ContractStatus Status { get; set; }
-        
+
         public int CounterpartyId { get; set; }
         public virtual Counterparty Counterparty { get; set; }
         

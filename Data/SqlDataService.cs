@@ -771,9 +771,9 @@ string sql = @"
         {
             var contracts = new List<Contract>();
             
-            // Реальная структура БД: ContractStatus (не Status), CreatedAt, UpdatedAt
+            // Реальная структура БД: CreatedAt, UpdatedAt
             string sql = @"
-                SELECT Id, ContractNumber, [ContractType], ContractStatus, CounterpartyId,
+                SELECT Id, ContractNumber, [ContractType], CounterpartyId,
                        SignedDate, StartDate, EndDate, TotalAmount,
                        PaymentTerms, Notes, CreatedAt, UpdatedAt
                 FROM Contracts
@@ -800,7 +800,7 @@ string sql = @"
         public Contract GetContract(int id)
         {
             string sql = @"
-                SELECT Id, ContractNumber, [ContractType], ContractStatus, CounterpartyId,
+                SELECT Id, ContractNumber, [ContractType], CounterpartyId,
                        SignedDate, StartDate, EndDate, TotalAmount,
                        PaymentTerms, Notes, CreatedAt, UpdatedAt
                 FROM Contracts
@@ -839,7 +839,7 @@ string sql = @"
         
         private void InsertContract(Contract contract)
         {
-            // В БД: ContractStatus (TINYINT), CreatedAt, UpdatedAt
+            // В БД: CreatedAt, UpdatedAt
             // Нет: DurationMonths, VATAmount, TotalWithVAT, AdvancePayment, MonthlyPayment, ActivationDate, CompletionDate, IsDeleted
             
             // REFACTOR: Проверка ограничений CHECK из БД
@@ -875,11 +875,11 @@ string sql = @"
             
             string sql = @"
                 INSERT INTO Contracts 
-                (ContractNumber, [ContractType], ContractStatus, CounterpartyId, 
+                (ContractNumber, [ContractType], CounterpartyId, 
                  SignedDate, StartDate, EndDate, TotalAmount,
                  PaymentTerms, Notes, CreatedAt)
                 VALUES 
-                (@ContractNumber, @ContractType, @ContractStatus, @CounterpartyId, 
+                (@ContractNumber, @ContractType, @CounterpartyId, 
                  @SignedDate, @StartDate, @EndDate, @TotalAmount,
                  @PaymentTerms, @Notes, @CreatedAt);
                 SELECT SCOPE_IDENTITY();";
@@ -932,7 +932,6 @@ string sql = @"
                 UPDATE Contracts SET
                     ContractNumber = @ContractNumber,
                     [ContractType] = @ContractType,
-                    ContractStatus = @ContractStatus,
                     CounterpartyId = @CounterpartyId,
                     SignedDate = @SignedDate,
                     StartDate = @StartDate,
@@ -958,10 +957,9 @@ string sql = @"
         
         public void DeleteContract(int id)
         {
-            // В БД нет IsDeleted, но есть ContractStatus
-            // Можно установить ContractStatus в Terminated (4) или использовать другой подход
-            // Пока устанавливаем ContractStatus = 4 (Terminated)
-            string sql = "UPDATE Contracts SET ContractStatus = 4, UpdatedAt = @UpdatedAt WHERE Id = @Id";
+            // В БД нет IsDeleted
+            // Используем мягкое удаление через UpdatedAt
+            string sql = "UPDATE Contracts SET UpdatedAt = @UpdatedAt WHERE Id = @Id";
             
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -978,13 +976,12 @@ string sql = @"
         private Contract MapContract(SqlDataReader reader)
         {
             // Маппинг из структуры БД в модель
-            // БД: ContractStatus -> Model: Status
             // БД: CreatedAt -> Model: CreatedDate
             // БД: UpdatedAt -> Model: ModifiedDate
             // Отсутствующие поля устанавливаем по умолчанию
             
-            DateTime startDate = reader.IsDBNull(6) ? DateTime.Now : reader.GetDateTime(6);
-            DateTime? endDate = reader.IsDBNull(7) ? (DateTime?)null : reader.GetDateTime(7);
+            DateTime startDate = reader.IsDBNull(5) ? DateTime.Now : reader.GetDateTime(5);
+            DateTime? endDate = reader.IsDBNull(6) ? (DateTime?)null : reader.GetDateTime(6);
             
             int durationMonths = 0;
             if (endDate.HasValue)
@@ -993,7 +990,7 @@ string sql = @"
                 durationMonths = (int)Math.Ceiling(days / 30.0);
             }
             
-            decimal totalAmount = reader.IsDBNull(8) ? 0 : reader.GetDecimal(8);
+            decimal totalAmount = reader.IsDBNull(7) ? 0 : reader.GetDecimal(7);
             decimal monthlyPayment = durationMonths > 0 ? totalAmount / durationMonths : totalAmount;
             
             return new Contract
@@ -1001,9 +998,8 @@ string sql = @"
                 Id = reader.IsDBNull(0) ? 0 : reader.GetInt32(0),
                 ContractNumber = reader.IsDBNull(1) ? "" : reader.GetString(1),
                 ContractType = reader.IsDBNull(2) ? ContractType.Rental : (ContractType)reader.GetByte(2),
-                Status = reader.IsDBNull(3) ? ContractStatus.Draft : (ContractStatus)reader.GetByte(3),
-                CounterpartyId = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
-                SignedDate = reader.IsDBNull(5) ? DateTime.Now : reader.GetDateTime(5),
+                CounterpartyId = reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                SignedDate = reader.IsDBNull(4) ? DateTime.Now : reader.GetDateTime(4),
                 StartDate = startDate,
                 EndDate = endDate,
                 // Рассчитываем DurationMonths
@@ -1014,10 +1010,10 @@ string sql = @"
                 TotalWithVAT = totalAmount, // Приравниваем к TotalAmount
                 AdvancePayment = 0, // Нет в БД
                 MonthlyPayment = monthlyPayment,
-                PaymentTerms = reader.IsDBNull(9) ? null : reader.GetString(9),
-                Notes = reader.IsDBNull(10) ? null : reader.GetString(10),
-                CreatedDate = reader.IsDBNull(11) ? DateTime.Now : reader.GetDateTime(11),
-                ModifiedDate = reader.IsDBNull(12) ? (DateTime?)null : reader.GetDateTime(12),
+                PaymentTerms = reader.IsDBNull(8) ? null : reader.GetString(8),
+                Notes = reader.IsDBNull(9) ? null : reader.GetString(9),
+                CreatedDate = reader.IsDBNull(10) ? DateTime.Now : reader.GetDateTime(10),
+                ModifiedDate = reader.IsDBNull(11) ? (DateTime?)null : reader.GetDateTime(11),
                 ActivationDate = null, // Нет в БД
                 CompletionDate = null, // Нет в БД
                 IsDeleted = false // В БД нет, считаем активным
@@ -1026,11 +1022,10 @@ string sql = @"
         
         private void AddContractParameters(SqlCommand command, Contract contract)
         {
-            // БД использует ContractStatus, CreatedAt, UpdatedAt
+            // БД использует CreatedAt, UpdatedAt
             // REFACTOR: Исправление для CHECK ограничений - пустые строки преобразуем в NULL
             command.Parameters.AddWithValue("@ContractNumber", string.IsNullOrEmpty(contract.ContractNumber) ? (object)DBNull.Value : contract.ContractNumber);
             command.Parameters.AddWithValue("@ContractType", (int)contract.ContractType);
-            command.Parameters.AddWithValue("@ContractStatus", (int)contract.Status);
             command.Parameters.AddWithValue("@CounterpartyId", contract.CounterpartyId);
             command.Parameters.AddWithValue("@SignedDate", contract.SignedDate);
             command.Parameters.AddWithValue("@StartDate", contract.StartDate);
@@ -1132,7 +1127,6 @@ string sql = @"
             {
                 ContractNumber = "АР-2024-001",
                 ContractType = ContractType.Rental,
-                Status = ContractStatus.Active,
                 CounterpartyId = counterparty1.Id,
                 SignedDate = DateTime.Now.AddDays(-30),
                 StartDate = DateTime.Now.AddDays(-30),
@@ -1449,10 +1443,6 @@ string sql = @"
                     if (contract == null)
                         continue;
 
-                    // Учитываем только активные договоры
-                    if (!IsOperatingContractStatus(contract.Status))
-                        continue;
-
                     // Проверяем пересечение периода договора с отчетным периодом
                     var contractStart = contract.StartDate.Date;
                     var contractEnd = contract.EndDate?.Date ?? DateTime.MaxValue.Date;
@@ -1536,13 +1526,6 @@ string sql = @"
             return rows.OrderByDescending(r => r.UtilizationRate).ToList();
         }
 
-        private bool IsOperatingContractStatus(ContractStatus status)
-        {
-            // ContractStatus: Draft=0, Signed=1, Active=2, Suspended=3, Completed=4, Terminated=5
-            // Активные статусы: Signed, Active, Suspended
-            return status == ContractStatus.Signed || status == ContractStatus.Active || status == ContractStatus.Suspended;
-        }
-        
         #endregion
         
         #region ContractSpecifications CRUD
@@ -1962,14 +1945,12 @@ string sql = @"
             {
                 connection.Open();
 
-                // Проверяем, есть ли активные спецификации для этой техники в указанный период
-                // ContractStatus: Draft=0, Signed=1, Active=2, Suspended=3, Completed=4, Terminated=5
+                // Проверяем, есть ли спецификации для этой техники в указанный период
                 string sql = @"
                     SELECT COUNT(*)
                     FROM ContractSpecifications cs
                     INNER JOIN Contracts c ON cs.ContractId = c.Id
                     WHERE cs.AssetId = @AssetId
-                        AND c.ContractStatus IN (1, 2, 3) -- Signed, Active, Suspended
                         AND (@ExcludeContractId IS NULL OR c.Id != @ExcludeContractId)
                         AND c.StartDate <= @EndDate
                         AND (c.EndDate IS NULL OR c.EndDate >= @StartDate)";
@@ -1996,13 +1977,11 @@ string sql = @"
             {
                 connection.Open();
 
-                // ContractStatus: Draft=0, Signed=1, Active=2, Suspended=3, Completed=4, Terminated=5
                 string sql = @"
                     SELECT COUNT(*)
                     FROM ContractSpecifications cs
                     INNER JOIN Contracts c ON cs.ContractId = c.Id
                     WHERE cs.AssetId = @AssetId
-                        AND c.ContractStatus IN (1, 2, 3) -- Signed, Active, Suspended
                         AND (c.EndDate IS NULL OR c.EndDate >= GETDATE())";
 
                 using (var command = new SqlCommand(sql, connection))

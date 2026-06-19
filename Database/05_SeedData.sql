@@ -139,29 +139,29 @@ GO
 SET IDENTITY_INSERT Contracts ON;
 GO
 
--- Договор 1: Аренда (AR = Rental, ContractType = 0, Status = 2 = Active)
-INSERT INTO Contracts (Id, ContractNumber, ContractType, ContractStatus, CounterpartyId, 
+-- Договор 1: Аренда (AR = Rental, ContractType = 0)
+INSERT INTO Contracts (Id, ContractNumber, ContractType, CounterpartyId, 
                        SignedDate, StartDate, EndDate, TotalAmount, PaymentTerms, Notes, CreatedAt)
 VALUES 
-    (1, N'AR-2024-001', 0, 2, 1, 
+    (1, N'AR-2024-001', 0, 1, 
      CAST(GETDATE() - 30 AS DATE), CAST(GETDATE() - 30 AS DATE), CAST(GETDATE() + 60 AS DATE),
      450000.00, N'Аванс 30%, остальное ежемесячно', N'Договор аренды экскаватора', GETDATE());
 GO
 
--- Договор 2: Аренда (ContractType = 0, Status = 1 = Signed)
-INSERT INTO Contracts (Id, ContractNumber, ContractType, ContractStatus, CounterpartyId, 
+-- Договор 2: Аренда (ContractType = 0)
+INSERT INTO Contracts (Id, ContractNumber, ContractType, CounterpartyId, 
                        SignedDate, StartDate, EndDate, TotalAmount, PaymentTerms, Notes, CreatedAt)
 VALUES 
-    (2, N'AR-2024-002', 0, 1, 2,
+    (2, N'AR-2024-002', 0, 2,
      CAST(GETDATE() - 10 AS DATE), CAST(GETDATE() - 5 AS DATE), CAST(GETDATE() + 355 AS DATE),
      360000.00, N'Ежемесячные платежи', N'Договор аренды генератора', GETDATE());
 GO
 
--- Договор 3: Черновик (DR = Draft, ContractType = 0, Status = 0 = Draft)
-INSERT INTO Contracts (Id, ContractNumber, ContractType, ContractStatus, CounterpartyId, 
+-- Договор 3: Черновик (DR = Draft, ContractType = 0)
+INSERT INTO Contracts (Id, ContractNumber, ContractType, CounterpartyId, 
                        SignedDate, StartDate, EndDate, TotalAmount, PaymentTerms, Notes, CreatedAt)
 VALUES 
-    (3, N'DR-2024-003', 0, 0, 3,
+    (3, N'DR-2024-003', 0, 3,
      CAST(GETDATE() AS DATE), CAST(GETDATE() + 30 AS DATE), CAST(GETDATE() + 180 AS DATE),
      250000.00, N'Предварительный договор', N'Черновик договора аренды бульдозера', GETDATE());
 GO
@@ -289,7 +289,7 @@ GO
 PRINT '------------------------------------------------';
 PRINT 'Данные договоров:';
 PRINT '------------------------------------------------';
-SELECT Id, ContractNumber, ContractType, ContractStatus, CounterpartyId FROM Contracts;
+SELECT Id, ContractNumber, ContractType, CounterpartyId FROM Contracts;
 GO
 
 PRINT '------------------------------------------------';

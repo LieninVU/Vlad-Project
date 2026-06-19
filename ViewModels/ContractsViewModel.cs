@@ -47,18 +47,6 @@ namespace ForVlad.ViewModels
             }
         }
         
-        private ContractStatus? _filterStatus;
-        public ContractStatus? FilterStatus
-        {
-            get => _filterStatus;
-            set
-            {
-                if (SetField(ref _filterStatus, value))
-                {
-                    FilterContracts();
-                }
-            }
-        }
         
         // Для создания/редактирования договора
         private bool _isDialogOpen;
@@ -137,8 +125,6 @@ namespace ForVlad.ViewModels
         
         // Списки для ComboBox
         public ObservableCollection<Counterparty> Counterparties { get; }
-        public ObservableCollection<ContractStatus> Statuses { get; }
-public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
 
         // Команды
         public ICommand AddContractCommand { get; }
@@ -147,11 +133,8 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
         public ICommand RefreshCommand { get; }
         public ICommand SaveContractCommand { get; }
         public ICommand CancelCommand { get; }
-        public ICommand ClearStatusFilterCommand { get; }
         public ICommand EditContractFromRowCommand { get; }
-        public ICommand ViewContractDetailsCommand { get; }
 
-        private Action<int> _navigateToContractDetails;
         
         private int? _filterCounterpartyId;
         
@@ -161,17 +144,8 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
             Contracts = new ObservableCollection<Contract>();
             FilteredContracts = new ObservableCollection<Contract>();
             Counterparties = new ObservableCollection<Counterparty>();
-            Statuses = new ObservableCollection<ContractStatus>();
-            StatusFilterOptions = new ObservableCollection<ContractStatus?>();
             Assets = new ObservableCollection<Asset>();
             PeriodTypes = new ObservableCollection<PeriodType>();
-
-            StatusFilterOptions.Add(null);
-            foreach (ContractStatus status in Enum.GetValues(typeof(ContractStatus)))
-            {
-                Statuses.Add(status);
-                StatusFilterOptions.Add(status);
-            }
 
             foreach (PeriodType type in Enum.GetValues(typeof(PeriodType)))
             {
@@ -185,9 +159,7 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
             RefreshCommand = new RelayCommand(_ => LoadContracts());
             SaveContractCommand = new RelayCommand(_ => SaveContract());
             CancelCommand = new RelayCommand(_ => CloseDialog());
-            ClearStatusFilterCommand = new RelayCommand(_ => ClearStatusFilter());
             EditContractFromRowCommand = new RelayCommand(OpenEditFromRow);
-            ViewContractDetailsCommand = new RelayCommand(_ => ViewContractDetails(), _ => SelectedContract != null);
             
             LoadContracts();
             LoadCounterparties();
@@ -196,26 +168,12 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
         public void SetCounterpartyFilter(int counterpartyId)
         {
             _filterCounterpartyId = counterpartyId;
-            FilterStatus = null;
             FilterContracts();
         }
         
         public void ClearCounterpartyFilter()
         {
             _filterCounterpartyId = null;
-        }
-
-        public void SetNavigateToContractDetails(Action<int> navigateToContractDetails)
-        {
-            _navigateToContractDetails = navigateToContractDetails;
-        }
-
-        private void ViewContractDetails()
-        {
-            if (SelectedContract != null && _navigateToContractDetails != null)
-            {
-                _navigateToContractDetails(SelectedContract.Id);
-            }
         }
 
         private void OpenEditFromRow(object parameter)
@@ -297,8 +255,6 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
             if (_filterCounterpartyId.HasValue)
                 filtered = filtered.Where(c => c.CounterpartyId == _filterCounterpartyId.Value);
             
-            if (FilterStatus.HasValue)
-                filtered = filtered.Where(c => c.Status == FilterStatus.Value);
             
             if (!string.IsNullOrEmpty(SearchText))
             {
@@ -326,7 +282,6 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
             {
                 ContractNumber = _dataService.GenerateContractNumber(ContractType.Rental),
                 ContractType = ContractType.Rental,
-                Status = ContractStatus.Draft,
                 CounterpartyId = defaultCounterpartyId,
                 SignedDate = DateTime.Now,
                 StartDate = DateTime.Now,
@@ -350,7 +305,6 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
                 Id = SelectedContract.Id,
                 ContractNumber = SelectedContract.ContractNumber,
                 ContractType = SelectedContract.ContractType,
-                Status = SelectedContract.Status,
                 CounterpartyId = SelectedContract.CounterpartyId,
                 SignedDate = SelectedContract.SignedDate,
                 StartDate = SelectedContract.StartDate,
@@ -558,11 +512,5 @@ public ObservableCollection<ContractStatus?> StatusFilterOptions { get; }
             SelectedAsset = null;
         }
         
-        private void ClearStatusFilter()
-        {
-            FilterStatus = null;
-            _filterCounterpartyId = null;
-            SearchText = string.Empty;
-        }
     }
 }

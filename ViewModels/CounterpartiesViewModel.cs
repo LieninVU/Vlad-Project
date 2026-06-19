@@ -261,8 +261,7 @@ namespace ForVlad.ViewModels
             
             var activeContracts = _dataService.GetContracts()
                 .Count(c => c.CounterpartyId == SelectedCounterparty.Id &&
-                            !c.IsDeleted &&
-                            (c.Status == ContractStatus.Active || c.Status == ContractStatus.Signed));
+                            !c.IsDeleted);
             
             if (activeContracts > 0)
             {

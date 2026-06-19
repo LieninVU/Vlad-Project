@@ -11,7 +11,6 @@
                 <ResourceDictionary Source="Styles/ScalableStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         <!-- Ресурсы конвертеров -->
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
         <converters:ContractTypeToColorConverter x:Key="ContractTypeToColorConverter" />
         <converters:BoolToAvailabilityColorConverter x:Key="BoolToAvailabilityColorConverter" />
         <converters:BoolToAvailableTextConverter x:Key="BoolToAvailableTextConverter" />

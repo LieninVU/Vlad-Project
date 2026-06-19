@@ -29,7 +29,6 @@
         </Style>
         
         <!-- Конвертеры -->
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter" />
         <converters:ContractTypeToColorConverter x:Key="ContractTypeToColorConverter" />
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
         <converters:IntToVisibilityInverseConverter x:Key="IntToVisibilityInverseConverter" />
@@ -50,12 +49,6 @@
                         Foreground="White"
                         FontWeight="Bold"
                         Command="{Binding AddContractCommand}"/>
-
-                <Button Content="📋 Детали"
-                        Background="#9B59B6"
-                        Foreground="White"
-                        Command="{Binding ViewContractDetailsCommand}"
-                        ToolTip="Просмотреть спецификации и платежи"/>
 
                 <Button Content="✏️ Редактировать"
                         Background="#3498DB"
@@ -95,39 +88,6 @@
                          ToolTip="Поиск по номеру договора или примечаниям"
                          MinWidth="200"/>
                 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="20,0,0,0">
-                    <TextBlock Text="Статус:" 
-                               VerticalAlignment="Center" 
-                               Margin="0,0,10,0"/>
-                    
-                    <ComboBox ItemsSource="{Binding StatusFilterOptions}"
-                              SelectedItem="{Binding FilterStatus}"
-                              Width="150"
-                              ToolTip="Пусто = все статусы">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock>
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
-                                                    <Setter Property="Text" Value="Все"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    
-                    <Button Content="✕" 
-                            ToolTip="Очистить фильтр"
-                            Width="25"
-                            Margin="5,0,0,0"
-                            Command="{Binding ClearStatusFilterCommand}"/>
-                </StackPanel>
             </Grid>
         </Border>
         
@@ -164,16 +124,6 @@
                             <DataTemplate>
                                 <TextBlock Text="{Binding ContractType, Converter={StaticResource EnumToRussianConverter}}" FontWeight="SemiBold"
                                            Foreground="{Binding ContractType, Converter={StaticResource ContractTypeToColorConverter}}"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="Статус" Width="100" MinWidth="90">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
-                                        CornerRadius="3" Padding="4,2" HorizontalAlignment="Left">
-                                    <TextBlock Text="{Binding Status, Converter={StaticResource EnumToRussianConverter}}" Foreground="White" FontWeight="SemiBold" FontSize="11"/>
-                                </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -268,26 +218,18 @@
                         </Grid.RowDefinitions>
 
                         <!-- Номер договора -->
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Номер договора:" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+                                    <Run Text="Номер договора:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/>
+                                </TextBlock>
                         <TextBox Grid.Row="0" Grid.Column="1" 
                                  Text="{Binding EditingContract.ContractNumber, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="5"/>
 
-                        <!-- Статус -->
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Статус:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="1" Grid.Column="1"
-                                  ItemsSource="{Binding Statuses}"
-                                  SelectedItem="{Binding EditingContract.Status}"
-                                  Margin="5">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Converter={StaticResource EnumToRussianConverter}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
                         
                         <!-- Контрагент -->
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Контрагент:" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center">
+                                    <Run Text="Контрагент:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/>
+                                </TextBlock>
                         <ComboBox Grid.Row="2" Grid.Column="1"
                                   ItemsSource="{Binding Counterparties}"
                                   SelectedValue="{Binding EditingContract.CounterpartyId}"
@@ -323,7 +265,9 @@
                                     VerticalAlignment="Center"/>
 
                         <!-- Техника (для аренды) -->
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Техника:" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="7" Grid.Column="0" VerticalAlignment="Center">
+                                    <Run Text="Техника:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/>
+                                </TextBlock>
                         <ComboBox Grid.Row="7" Grid.Column="1"
                                   ItemsSource="{Binding Assets}"
                                   SelectedItem="{Binding SelectedAsset}"
@@ -340,7 +284,9 @@
                         </ComboBox>
 
                         <!-- Сумма -->
-                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Сумма без НДС:" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center">
+                                    <Run Text="Сумма без НДС:"/><Run Text=" *" Foreground="Red" FontWeight="Bold"/>
+                                </TextBlock>
                         <TextBox Grid.Row="8" Grid.Column="1"
                                  Text="{Binding EditingContract.TotalAmount, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="5"/>
